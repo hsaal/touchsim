@@ -73,7 +73,37 @@ def unique_rows(data):
         return_index=True,return_inverse=True)
     return uniq.view(data.dtype).reshape(-1, data.shape[1]), ia, ic
 
-def point_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq):
+def circ_load_vert_stress(P,PLoc,PRad,AffLoc,AffDepth):
+    AffDepth = np.atleast_2d(np.array(AffDepth))
+    nsamp,npin = P.shape
+    nrec = AffLoc.shape[0]
+
+    x = AffLoc[:,0] - PLoc[:,0].T    # (npin,nrec)
+    y = AffLoc[:,1] - PLoc[:,1].T    # (npin,nrec)
+    z = np.dot(np.ones((npin,1)),AffDepth[:]) # (npin,nrec)
+
+    r = np.hypot(x,y)
+
+    # Pressure stress matrix (r,t,z)  (SNEDDON 1946)
+    XSI = z/PRad
+    RHO = r/PRad
+
+    rr = np.sqrt(1.+XSI**2.)
+    R = np.sqrt((RHO**2. + XSI**2. - 1.)**2. + 4.*XSI**2.)
+    theta = np.arctan(1./XSI)
+    phi = np.arctan2(2.*XSI,(RHO**2. + XSI**2. -1.))
+
+    J01 = np.sin(phi/2.) / np.sqrt(R)
+    J02 = rr * np.sin(3./2.*phi - theta) / R**(3./2.)
+
+    # Pressure rotated stress matrix (x,y,z)
+    eps = P/2./PRad/PRad/np.pi
+
+    s_z = eps * (J01 + XSI*J02)
+
+    return s_z
+    
+def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq):
     # compute shift and decay only once for each unique x,y coord
     if Rloc.shape[0]>1:
         u,ia,ic = unique_rows(Rloc)

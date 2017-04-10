@@ -102,10 +102,11 @@ class Stimulus:
             self.trace,self.location,self.fs,self.pin_radius)
     
     def propagate(self,aff):
-        udyn = MechanoTransduction.point_load_dyn_wave(
+        stat_comp = MechanoTransduction.circ_load_vert_stress(
+            self.profile,self.location,self.pin_radius,aff.location,aff.depth)
+        dyn_comp = MechanoTransduction.circ_load_dyn_wave(
             self.profiledyn,self.location,self.pin_radius,aff.location,aff.depth,self.fs)
-        strain = np.zeros(udyn.shape) # need to call static mechanics model here
-        return strain, udyn, self.fs
+        return stat_comp, dyn_comp, self.fs
         
 def affpop_single_models():
     a = AfferentPopulation()
