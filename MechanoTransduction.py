@@ -11,14 +11,16 @@ def skin_touch_profile(S0,xy,samp_freq,ProbeRad):
 
     x=xy[:,0]
     y=xy[:,1]
-    
+
     R = np.sqrt((np.tile(x,(x.size,1))-np.tile(x,(x.size,1)).T)**2. \
         + (np.tile(y,(y.size,1))-np.tile(y,(y.size,1)).T)**2.)
-    
+
     # flat cylinder indenter solution from (SNEDDON 1946):
+    np.seterr(all="ignore")
     D = (1.-nu**2.)/np.pi/ProbeRad * np.arcsin(ProbeRad/R)/E
+    np.seterr(all="warn")
     D[R<=ProbeRad] = (1.-nu**2.)/2./ProbeRad/E
-    
+
     S0neg = S0<0
     absS0 = np.abs(S0)
 
@@ -34,13 +36,13 @@ def skin_touch_profile(S0,xy,samp_freq,ProbeRad):
         S0loc = absS0[diffl,:]
         P[diffl,:] = block_solve(S0loc,D)
         prevS0 = absS0
-        
+
     # correct for the hack
     P[S0neg] = -P[S0neg]
-    
+
     # actual skin profile under the pins
     S1 = np.dot(P,D)
-    
+
     # time derivative of deflection profile
     # assumes same distribution of pressure as in static case
     # proposed by BYCROFT (1955) and confirmed by SCHMIDT (1981)
@@ -55,7 +57,7 @@ def skin_touch_profile(S0,xy,samp_freq,ProbeRad):
     else:
         Pdyn = np.zeros(P.shape);
     return P, Pdyn
-    
+
 def block_solve(S0,D):
     nz = S0!=0
     # find similar lines to solve the linear system
@@ -67,7 +69,7 @@ def block_solve(S0,D):
         nzi = unz[ii,:]   # non-zeros elements
         P[lines,nzi] = linalg.solve(np.atleast_2d(D[nzi,nzi]),np.atleast_2d(S0[lines,nzi]),sym_pos=True)
     return P
-        
+
 def unique_rows(data):
     uniq, ia, ic = np.unique(data.view(data.dtype.descr * data.shape[1]),
         return_index=True,return_inverse=True)
@@ -102,7 +104,7 @@ def circ_load_vert_stress(P,PLoc,PRad,AffLoc,AffDepth):
     s_z = eps * (J01 + XSI*J02)
 
     return s_z
-    
+
 def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq):
     # compute shift and decay only once for each unique x,y coord
     if Rloc.shape[0]>1:
@@ -110,7 +112,7 @@ def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq):
     else:
         ia = np.array([0])
         ic = np.array([0])
-        
+
     nsamp = dynProfile.shape[1]
     npin = dynProfile.shape[0]
     nrec = ia.size
@@ -125,7 +127,9 @@ def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq):
     delay = rdel/8000. # 8000 is the wave velocity in mm/s
 
     # decay (=skin deflection decay given by Sneddon 1946)
+    np.seterr(all="ignore")
     decay = 1./PRad/np.pi*np.arcsin(PRad/dr)
+    np.seterr(all="warn")
     decay[dr<=PRad] = 1./2./PRad
 
     # construct interpolation functions for each pin and delays the propagation
@@ -142,25 +146,28 @@ def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq):
 
     # z decay is 1/z^2
     udyn = udyn / (Rdepth**2)
-    
+
     return udyn
-    
+
 def lif_neuron(aff,stimi,dstimi,srate):
+
+    np.seterr(under="ignore")
+
     p = aff.parameters
     time_fac = srate/5000.
-    
+
     # Make basis for post-spike current
     ihbasis = Constants.ihbasis
     if time_fac!=1.:
         ihbasis = interpolate.interp1d(
             np.r_[0.:0.0378:0.0002],ihbasis,np.r_[0.:0.0378:0.0002/time_fac],kind='cubic')
     ih = np.dot(ihbasis.T,p[10:12])
-    
+
     if p[0]>0.:
         b,a = signal.butter(3,p[0]*4./(time_fac*1000.))
-        stimi = signal.lfilter(b,a,stimi)
+        stimi = np.atleast_2d(signal.lfilter(b,a,stimi.flatten())).T
         dstimi = np.atleast_2d(signal.lfilter(b,a,dstimi.flatten())).T
-        
+
     ddstimi = np.r_[np.diff(dstimi,axis=0),np.zeros((1,1))]*time_fac
 
     s_all = np.c_[stimi,-stimi,dstimi,-dstimi,ddstimi,-ddstimi]
@@ -171,7 +178,7 @@ def lif_neuron(aff,stimi,dstimi,srate):
 
     Iinj = s_all[:,0]*p[1] + s_all[:,1]*p[2] + s_all[:,2]*p[3] + s_all[:,3]*p[4] \
         + s_all[:,4]*p[5] + s_all[:,5]*p[6]
-    
+
     #if aff.noisy:
     #   Iinj = Iinj + p[8]*randn(length(Iinj),1)
 
@@ -190,17 +197,20 @@ def lif_neuron(aff,stimi,dstimi,srate):
     Sp = np.zeros((slen,1))
 
     for ii in range(1,slen):  # Outer loop: 1 iter per time bin of input
-    
+
         if ih_counter==nh:
             Vmem[ii] =  Vmem[ii-1] + (-(Vmem[ii-1]-vleak)/tau + Iinj[ii])/time_fac
         else:
             Vmem[ii] =  Vmem[ii-1] + (-(Vmem[ii-1]-vleak)/tau + Iinj[ii] + ih[ih_counter])/time_fac
             ih_counter += 1
-    
+
         if Vmem[ii]>vthr and ih_counter>5*time_fac:
             Sp[ii] = 1.
             Vmem[ii] = vr
             ih_counter = 0
 
     spikes = np.flatnonzero(Sp)/srate + aff.parameters[12]/1000.
+
+    np.seterr(under="warn")
+
     return spikes
