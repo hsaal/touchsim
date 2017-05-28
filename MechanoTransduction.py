@@ -137,9 +137,10 @@ def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq):
     udyn = np.zeros((nsamp,nrec))
     for jj in range(npin):
         loc_delays = t - delay[jj]
-        F = interpolate.interp1d(t,dynProfile[jj,:].flatten(),bounds_error=False)
+        F = interpolate.interp1d(t,dynProfile[jj,:].flatten(),
+            bounds_error=False,fill_value=0.)
         delayed = np.reshape(F(loc_delays.flatten()),(nsamp,nrec))
-        udyn=udyn + delayed*decay[jj]
+        udyn += delayed*decay[jj]
 
     # copy results to all receptors at the same place
     udyn = udyn[:,ic]
@@ -179,8 +180,8 @@ def lif_neuron(aff,stimi,dstimi,srate):
     Iinj = s_all[:,0]*p[1] + s_all[:,1]*p[2] + s_all[:,2]*p[3] + s_all[:,3]*p[4] \
         + s_all[:,4]*p[5] + s_all[:,5]*p[6]
 
-    #if aff.noisy:
-    #   Iinj = Iinj + p[8]*randn(length(Iinj),1)
+    if aff.noisy:
+       Iinj += p[8]*np.random.standard_normal(Iinj.shape)
 
     if p[7]>0.:
         Iinj = p[7]*Iinj/(p[7]+np.abs(Iinj))
