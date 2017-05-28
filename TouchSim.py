@@ -14,7 +14,7 @@ class Afferent(object):
     affparams = Constants.affparams
 
     def __init__(self,affclass,**args):
-        self._affclass = self.affclass = affclass
+        self.affclass = affclass
         self.location = np.atleast_2d(args.get('location',np.array([[0., 0.]])))
         self.depth = args.get('depth',None)
         self.idx = args.get('idx',None)
@@ -66,6 +66,7 @@ class AfferentPopulation(object):
     def num(self):
         return len(self.afferents)
 
+    @property
     def affclass(self):
         return list(map(lambda x:x.affclass,self.afferents))
 
@@ -78,6 +79,7 @@ class AfferentPopulation(object):
     def iPC(self):
         return list(map(lambda x:x.iPC(),self.afferents))
 
+    @property
     def location(self):
         return np.asarray(list(map(lambda x:x.location.flatten(),self.afferents)))
 
@@ -111,16 +113,39 @@ class Stimulus:
         return stat_comp, dyn_comp, self.fs
 
 def affpop_single_models(**args):
-    affclass = args.get('affclass',Afferent.affparams.keys())
+    affclass = args.pop('affclass',Afferent.affparams.keys())
     a = AfferentPopulation()
     for t in affclass:
         for i in range(Afferent.affparams.get(t).shape[0]):
-            a.afferents.append(Afferent(t,idx=i))
+            a.afferents.append(Afferent(t,idx=i,**args))
+    return a
+
+def affpop_grid(**args):
+    affclass = args.pop('affclass',Afferent.affparams.keys())
+    dist = args.pop('dist',1.)
+    max_extent = args.pop('max_extent',10.)
+    idx = args.pop('idx',None)
+
+    locs = np.r_[-max_extent/2:max_extent/2+dist:dist]
+
+    a = AfferentPopulation()
+
+    for l1 in np.nditer(locs):
+        for l2 in np.nditer(locs):
+            if idx is None:
+                a_sub = affpop_single_models(
+                    location=np.array([l1,l2]),**args)
+                a.afferents.extend(a_sub.afferents)
+            else:
+                for t in affclass:
+                    a.afferents.append(
+                        Afferent(t,location=np.array([l1,l2]),idx=idx,**args))
     return a
 
 def affpop_hand(**args):
-    affclass = args.get('affclass',Afferent.affparams.keys())
-    region = args.get('region',None)
+    affclass = args.pop('affclass',Afferent.affparams.keys())
+    region = args.pop('region',None)
+
     if region is None:
         idx = range(20)
     else:
@@ -145,7 +170,7 @@ def affpop_hand(**args):
             xy -= Constants.orig
             xy = np.dot(xy,Constants.rot)/Constants.pxl_per_mm
             for l in range(xy.shape[0]):
-                affpop.afferents.append(Afferent(a,location=xy[l,:]))
+                affpop.afferents.append(Afferent(a,location=xy[l,:],**args))
     return affpop
 
 
@@ -190,6 +215,33 @@ def stim_ramp(**args):
     trace += pre_indent
 
     return Stimulus(trace=trace,location=loc,fs=fs,pin_radius=pin_size)
+
+def stim_indent_shape(shape,trace,**args):
+    if type(trace) is Stimulus:
+        t = trace.trace[:,0]
+        if 'fs' not in args:
+            args['fs'] = trace.fs
+        if 'pin_radius' not in args:
+            args['pin_radius'] = trace.pin_radius
+    else:
+        t = np.reshape(trace,(-1,1))
+
+    if 'offset' in args:
+        shape += np.tile(args.pop('offset'),shape.shape)
+
+    return Stimulus(trace=np.tile(t,(1, t.shape[0])),location=shape,**args)
+
+def shape_bar(**args):
+    width = args.get('width',1.)
+    height = args.get('height',.5)
+    angle = np.deg2rad(args.get('angle',0.))
+    pins_per_mm = args.get('pins_per_mm',10)
+
+    xy = np.mgrid[-width/2.:width/2.:width*pins_per_mm*1j,
+        -height/2.:height/2.:height*pins_per_mm*1j]
+    xy = xy.reshape(2,xy.shape[1]*xy.shape[2]).T
+    return np.dot(np.array([[np.cos(angle),-np.sin(angle)],
+        [np.sin(angle),np.cos(angle)]]),xy.T).T
 
 def apply_ramp(trace,**args):
     len = args.get('len',.05)
