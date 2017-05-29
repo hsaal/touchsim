@@ -4,14 +4,17 @@ import Constants
 import random
 import re
 from matplotlib import path
+try:
+    import holoviews as hv
+except:
+    pass
 
 class Afferent(object):
 
+    affclasses = ['SA1','RA','PC']
     affdepths = Constants.affdepths
-    affparamsSA = Constants.affparamsSA
-    affparamsRA = Constants.affparamsRA
-    affparamsPC = Constants.affparamsPC
     affparams = Constants.affparams
+    affcol = Constants.affcol
 
     def __init__(self,affclass,**args):
         self.affclass = affclass
@@ -44,15 +47,6 @@ class Afferent(object):
             raise IOError("Afferent class must be SA1, RA, or PC")
         self._affclass = affclass
 
-    def iSA1(self):
-        return self.affclass=='SA1'
-
-    def iRA(self):
-        return self.affclass=='RA'
-
-    def iPC(self):
-        return self.affclass=='PC'
-
     def response(self,stim):
         strain, udyn, fs = stim.propagate(self)
         r = MechanoTransduction.lif_neuron(self,strain,udyn,fs)
@@ -70,24 +64,23 @@ class AfferentPopulation(object):
     def affclass(self):
         return list(map(lambda x:x.affclass,self.afferents))
 
-    def iSA1(self):
-        return list(map(lambda x:x.iSA1(),self.afferents))
-
-    def iRA(self):
-        return list(map(lambda x:x.iRA(),self.afferents))
-
-    def iPC(self):
-        return list(map(lambda x:x.iPC(),self.afferents))
-
     @property
     def location(self):
         return np.asarray(list(map(lambda x:x.location.flatten(),self.afferents)))
+
+    def find(self,affclass):
+        return list(map(lambda x:x.affclass==affclass,self.afferents))
 
     def response(self,stim):
         r = []
         for a in self.afferents:
             r.append(a.response(stim))
         return r
+
+    @ property
+    def disp(self):
+        return hv.NdOverlay({a:hv.Points(coord2plot(self.location[self.find(a),:]))\
+            (style=dict(color=Afferent.affcol[a])) for a in Afferent.affclasses})
 
 class Stimulus:
 
@@ -168,7 +161,7 @@ def affpop_hand(**args):
             xy = xy[ind,:]
 
             xy -= Constants.orig
-            xy = np.dot(xy,Constants.rot)/Constants.pxl_per_mm
+            xy = np.dot(xy,Constants.rot2coord)/Constants.pxl_per_mm
             for l in range(xy.shape[0]):
                 affpop.afferents.append(Afferent(a,location=xy[l,:],**args))
     return affpop
@@ -270,3 +263,18 @@ def apply_pad(trace,**args):
     if fs is not None:
         len = round(len*fs)
     trace = np.concatenate((np.zeros(len),trace,np.zeros(len)))
+
+def disp_hand(region=None):
+
+    if region is None:
+        idx = range(20)
+    else:
+        match = re.findall('[dDpPwWmMdDfFtT]\d?',region)
+        idx = [i for i,x in enumerate(Constants.regionprop_tags) if x[0]==match[0]]
+        if len(match)>1:
+            idx = set(idx).intersection([i for i,x in enumerate(Constants.regionprop_tags) if x[1]==match[1]])
+    return hv.Path(list(map(lambda x:x.T, [Constants.regionprop_boundary[i] for i in idx])))\
+        (style=dict(color='k'))
+
+def coord2plot(locs):
+    return np.dot(locs,Constants.rot2plot)*Constants.pxl_per_mm + Constants.orig

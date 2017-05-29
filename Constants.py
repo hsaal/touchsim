@@ -79,6 +79,8 @@ affparamsPC = np.array([[27.50213623046875, 0., 0., -257.79678911169367, -185.65
 # parameters dictionary
 affparams = {'SA1':affparamsSA,'RA':affparamsRA,'PC':affparamsPC}
 
+affcol = {'SA1':[0.1961,0.6275,0.1569],'RA':[0.1176,0.4706,0.7059],'PC':[1.0000,0.4980,0.]}
+
 # IH basis
 ihbasis = np.array([[1., 0.96225940969727608, 0.87536423208046354, 0.766769433248516, 0.652610209235263,
    0.54205182533315932, 0.44004030458263255, 0.34898468667748422, 0.26978049353795064,
@@ -144,7 +146,8 @@ density = {('SA1','p'):10.,('RA','p'):25., ('PC','p'):10.,
 orig = np.array([126.985990110355, 452.062407132244])
 pxl_per_mm = 2.18388294387421
 theta = -1.24458187646155
-rot = np.array([[np.cos(theta), -np.sin(theta)],[np.sin(theta), np.cos(theta)]])
+rot2coord = np.array([[np.cos(theta), -np.sin(theta)],[np.sin(theta), np.cos(theta)]])
+rot2plot = np.array([[np.cos(-theta), -np.sin(-theta)],[np.sin(-theta), np.cos(-theta)]])
 
 regionprop_centroid = np.array([[50.8095981271947, 262.800234100663],
     [101.943881978594, 205.371420306624],
