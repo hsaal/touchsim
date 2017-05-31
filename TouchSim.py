@@ -7,7 +7,7 @@ from matplotlib import path
 try:
     import holoviews as hv
 except:
-    pass
+    hv = None
 
 class Afferent(object):
 
@@ -72,13 +72,13 @@ class AfferentPopulation(object):
         return list(map(lambda x:x.affclass==affclass,self.afferents))
 
     def response(self,stim):
-        r = []
-        for a in self.afferents:
-            r.append(a.response(stim))
-        return r
+        r = list(map(lambda a:a.response(stim),self.afferents))
+        return Response(self,stim,r)
 
     @ property
     def disp(self):
+        if hv is None:
+            return None
         return hv.NdOverlay({a:hv.Points(coord2plot(self.location[self.find(a),:]))\
             (style=dict(color=Afferent.affcol[a])) for a in Afferent.affclasses})
 
@@ -91,8 +91,23 @@ class Stimulus:
         self.pin_radius = args.get('pin_radius',.05)
         self.compute_profile()
 
+    @property
     def duration(self):
         return self.trace.shape[1]/self.fs
+
+    @property
+    def time(self):
+        return np.linspace(0.,self.duration,self.trace.shape[1])
+
+    def disp(self,grid=False):
+        if hv is None:
+            return None
+        d = {i:hv.Curve((self.time,self.trace[i]))
+             for i in range(self.trace.shape[0])}
+        if grid:
+            return hv.NdLayout(d)
+        else:
+            return hv.NdOverlay(d)
 
     def compute_profile(self):
         self.profile, self.profiledyn = MechanoTransduction.skin_touch_profile(
@@ -105,6 +120,47 @@ class Stimulus:
             self.profiledyn,self.location,self.pin_radius,aff.location,aff.depth,self.fs)
         return stat_comp, dyn_comp, self.fs
 
+class Response:
+    def __init__(self,a,s,r):
+        self.aff = a
+        self.stim = s
+        self.spikes = r
+
+    @property
+    def duration(self):
+        return self.stim.duration
+
+    def rate(self):
+        return (np.atleast_2d(np.array(list(map(lambda x:x.size, self.spikes))))/self.duration).T
+
+    def psth(self,bin_width=10):
+        bins = np.r_[0:self.duration+bin_width/1000.:bin_width/1000.]
+        return np.array(list(map(lambda x:np.histogram(x,bins=bins)[0],self.spikes)))
+
+    def disp_spikes(self):
+        if hv is None:
+            return None
+        idx = [i for i in range(len(self.spikes)) if len(self.spikes[i]>0)]
+        return hv.NdOverlay({i: hv.Spikes(self.spikes[idx[i]], kdims=['Time'])\
+            (plot=dict(position=0.1*i),
+            style=dict(color=Afferent.affcol[self.aff.afferents[idx[i]].affclass]))\
+            for i in range(len(idx))})(plot=dict(yaxis='bare'))
+
+    def disp_spatial(self,bin_width=10):
+        if hv is None:
+            return None
+        if np.isinf(bin_width):
+            r = self.rate()
+        else:
+            r = self.psth(bin_width)
+        hm = dict()
+        for t in range(r.shape[1]):
+            hm[t] = hv.NdOverlay({a:hv.Points(np.concatenate(
+                [coord2plot(self.aff.location[self.aff.find(a),:]),
+                r[self.aff.find(a),t:t+1]],axis=1),vdims=['Firing rate'])\
+                (style=dict(color=Afferent.affcol[a])) for a in Afferent.affclasses})
+        return hv.HoloMap(hm)
+
 def affpop_single_models(**args):
     affclass = args.pop('affclass',Afferent.affparams.keys())
     a = AfferentPopulation()
@@ -114,7 +170,7 @@ def affpop_single_models(**args):
     return a
 
 def affpop_grid(**args):
-    affclass = args.pop('affclass',Afferent.affparams.keys())
+    affclass = args.pop('affclass',Afferent.affclasses)
     dist = args.pop('dist',1.)
     max_extent = args.pop('max_extent',10.)
     idx = args.pop('idx',None)
@@ -211,18 +267,18 @@ def stim_ramp(**args):
 
 def stim_indent_shape(shape,trace,**args):
     if type(trace) is Stimulus:
-        t = trace.trace[:,0]
+        t = trace.trace[0:1]
         if 'fs' not in args:
             args['fs'] = trace.fs
         if 'pin_radius' not in args:
             args['pin_radius'] = trace.pin_radius
     else:
-        t = np.reshape(trace,(-1,1))
+        t = np.reshape(np.atleast_2d(trace),(1,-1))
 
     if 'offset' in args:
         shape += np.tile(args.pop('offset'),shape.shape)
 
-    return Stimulus(trace=np.tile(t,(1, t.shape[0])),location=shape,**args)
+    return Stimulus(trace=np.tile(t,(shape.shape[0],1)),location=shape,**args)
 
 def shape_bar(**args):
     width = args.get('width',1.)

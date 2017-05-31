@@ -67,7 +67,9 @@ def block_solve(S0,D):
     for ii in range(0,ia.size):
         lines = ic==ii    # lines of this block
         nzi = unz[ii,:]   # non-zeros elements
-        P[lines,nzi] = linalg.solve(np.atleast_2d(D[nzi,nzi]),np.atleast_2d(S0[lines,nzi]),sym_pos=True)
+        ixgrid = np.ix_(lines,nzi)
+        nzigrid = np.ix_(nzi,nzi)
+        P[ixgrid] = linalg.solve(D[nzigrid],S0[ixgrid].T,sym_pos=True).T
     return P
 
 def unique_rows(data):
