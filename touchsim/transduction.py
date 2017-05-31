@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import linalg, interpolate, signal
-import Constants
+
+from .constants import ihbasis
 
 def skin_touch_profile(S0,xy,samp_freq,ProbeRad):
     S0 = S0.T # hack, needs to be fixed
@@ -35,7 +36,7 @@ def skin_touch_profile(S0,xy,samp_freq,ProbeRad):
         diffl = np.sum(absS0-prevS0,axis=1) != 0.
         S0loc = absS0[diffl,:]
         P[diffl,:] = block_solve(S0loc,D)
-        prevS0 = absS0
+        prevS0 = absS0.copy()
 
     # correct for the hack
     P[S0neg] = -P[S0neg]
@@ -160,11 +161,11 @@ def lif_neuron(aff,stimi,dstimi,srate):
     time_fac = srate/5000.
 
     # Make basis for post-spike current
-    ihbasis = Constants.ihbasis
+    ih = ihbasis
     if time_fac!=1.:
-        ihbasis = interpolate.interp1d(
-            np.r_[0.:0.0378:0.0002],ihbasis,np.r_[0.:0.0378:0.0002/time_fac],kind='cubic')
-    ih = np.dot(ihbasis.T,p[10:12])
+        ih = interpolate.interp1d(
+            np.r_[0.:0.0378:0.0002],ih,np.r_[0.:0.0378:0.0002/time_fac],kind='cubic')
+    ih = np.dot(ih.T,p[10:12])
 
     if p[0]>0.:
         b,a = signal.butter(3,p[0]*4./(time_fac*1000.))
