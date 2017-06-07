@@ -76,7 +76,7 @@ def stim_sine(**args):
     fs = args.get('fs',5000.)
     ramp_len = args.get('ramp_len',.05)
     ramp_type = args.get('ramp_type','lin')
-    pin_size = args.get('pin_size',.5)
+    pin_radius = args.get('pin_radius',.5)
     pre_indent = args.get('pre_indent',0.)
     pad_len = args.get('pad_len',0.)
 
@@ -89,7 +89,7 @@ def stim_sine(**args):
     apply_pad(trace,len=pad_len,fs=fs)
     trace += pre_indent
 
-    return Stimulus(trace=trace,location=loc,fs=fs,pin_radius=pin_size)
+    return Stimulus(trace=trace,location=loc,fs=fs,pin_radius=pin_radius)
 
 def stim_ramp(**args):
     amp = args.get('amp',1.)
@@ -98,7 +98,7 @@ def stim_ramp(**args):
     loc = np.array(args.get('loc',np.array([0.,0.])))
     fs = args.get('fs',5000.)
     ramp_len = args.get('ramp_len',.1)
-    pin_size = args.get('pin_size',.5)
+    pin_radius = args.get('pin_radius',.5)
     pre_indent = args.get('pre_indent',0.)
     pad_len = args.get('pad_len',0.)
 
@@ -107,7 +107,7 @@ def stim_ramp(**args):
     apply_pad(trace,len=pad_len,fs=fs)
     trace += pre_indent
 
-    return Stimulus(trace=trace,location=loc,fs=fs,pin_radius=pin_size)
+    return Stimulus(trace=trace,location=loc,fs=fs,pin_radius=pin_radius)
 
 def stim_indent_shape(shape,trace,**args):
     if type(trace) is Stimulus:
