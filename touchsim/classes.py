@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import warnings
 try:
     import holoviews as hv
 except:
@@ -37,6 +38,9 @@ class Afferent(object):
         if not self.delay:
             self.parameters[10] = 0.;
 
+    def __len__(self):
+        return 1
+
     @property
     def affclass(self):
         return self._affclass
@@ -46,6 +50,15 @@ class Afferent(object):
         if not affclass in Afferent.affdepths.keys():
             raise IOError("Afferent class must be SA1, RA, or PC")
         self._affclass = affclass
+
+    def __add__(self,other):
+        if type(other) is Afferent:
+            return AfferentPopulation(self,other)
+        elif type(other) is AfferentPopulation:
+            return other.__add__(self)
+        else:
+            RuntimeError("Can only add elements of type Afferent or AfferentPopulation.")
+        return self
 
     def response(self,stim):
         strain, udyn, fs = stim.propagate(self)
@@ -57,12 +70,57 @@ class AfferentPopulation(object):
     def __init__(self,*afferents):
         self.afferents = list(afferents)
 
-    def num(self):
+    def __len__(self):
         return len(self.afferents)
+
+    def __getitem__(self,idx):
+        if type(idx) is int:
+            return self.afferents[idx]
+        elif type(idx) is slice:
+            return AfferentPopulation(*self.afferents[idx])
+        elif type(idx) is (list or np.array) and len(idx)>0:
+            if type(idx[0]) is bool:
+                idx, = np.nonzero(idx)
+            if type(idx) is np.array:
+                idx = idx.tolist()
+            return AfferentPopulation(*[self.afferents[i] for i in idx])
+        elif idx in Afferent.affclasses:
+            return self[self.find(idx)]
+        else:
+            raise TypeError("Indices must be integers, slices, lists, or affclass.")
+
+    def __add__(self,other):
+        a = AfferentPopulation()
+        if type(other) is Afferent:
+            a.afferents.append(other)
+        elif type(other) is AfferentPopulation:
+            a.afferents.extend(other)
+        else:
+            raise TypeError("Can only add elements of type Afferent or AfferentPopulation.")
+        return a
+
+    def __iadd__(self,other):
+        if type(other) is Afferent:
+            self.afferents.append(other)
+        elif type(other) is AfferentPopulation:
+            self.afferents.extend(other.afferents)
+        else:
+            raise TypeError("Can only add elements of type Afferent or AfferentPopulation.")
+        return self
+
+    def num(self):
+        return len(self)
 
     @property
     def affclass(self):
         return list(map(lambda x:x.affclass,self.afferents))
+
+    @affclass.setter
+    def affclass(self,affclass):
+        if len(affclass)!=len(self):
+            raise RuntimeError("Length of affclass vector must match number of afferents")
+        for i,a in enumerate(self.afferents):
+            a.affclass=affclass[i] 
 
     @property
     def location(self):
@@ -103,6 +161,21 @@ class Stimulus:
     def time(self):
         return np.linspace(0.,self.duration,self.trace.shape[1])
 
+    def __iadd__(self,other):
+        if type(other) is not Stimulus:
+            raise RuntimeError("Can only add objects of type Stimulus.")
+        if self.pin_radius!=other.pin_radius:
+            warnings.warn("Overwriting pin_radius of second Stimulus object!")
+        if self.fs!=other.fs:
+            raise RuntimeError("Sampling frequencies must be the same.")
+        if self.duration!=other.duration:
+            raise RuntimeError("Stimulus durations must be the same.")
+
+        self.trace = np.concatenate([self.trace,other.trace])
+        self.location = np.concatenate([self.location,other.location])
+        self.compute_profile
+        return self
+
     def disp(self,grid=False):
         if hv is None:
             return None
@@ -114,21 +187,37 @@ class Stimulus:
             return hv.NdOverlay(d)
 
     def compute_profile(self):
-        self.profile, self.profiledyn = skin_touch_profile(
+        self._profile, self._profiledyn = skin_touch_profile(
             self.trace,self.location,self.fs,self.pin_radius)
 
     def propagate(self,aff):
         stat_comp = circ_load_vert_stress(
-            self.profile,self.location,self.pin_radius,aff.location,aff.depth)
+            self._profile,self.location,self.pin_radius,aff.location,aff.depth)
         dyn_comp = circ_load_dyn_wave(
-            self.profiledyn,self.location,self.pin_radius,aff.location,aff.depth,self.fs)
+            self._profiledyn,self.location,self.pin_radius,aff.location,aff.depth,self.fs)
         return stat_comp, dyn_comp, self.fs
 
 class Response:
     def __init__(self,a,s,r):
+        if len(a)!=len(r):
+            RuntimeError("a and r need to have the same length.")
+
         self.aff = a
         self.stim = s
         self.spikes = r
+
+    def __len__(self):
+        return len(self.aff)
+
+    def __getitem__(self,idx):
+        if type(idx) is int:
+            return Response(self.aff[idx],self.stim,self.spikes[idx])
+        elif type(idx) is Afferent:
+            return Response(idx,self.stim,self.spikes[self.aff.index(idx)])
+        elif type(idx) is AfferentPopulation:
+            return Response(idx,self.stim,[self.spikes[self.aff.index(a)] for a in idx])
+        else:
+            return Response(self.a[idx],self.stim,self.spikes[idx])
 
     @property
     def duration(self):
