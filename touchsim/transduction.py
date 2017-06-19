@@ -126,8 +126,8 @@ def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq):
 
     # delay (everything is synchronous under the probe)
     rdel = dr-PRad
-    rdel[rdel<0] = 0.
-    delay = rdel/8000. # 8000 is the wave velocity in mm/s
+    rdel[rdel<0.] = 0.
+    delay = np.atleast_2d(rdel/8000.) # 8000 is the wave velocity in mm/s
 
     # decay (=skin deflection decay given by Sneddon 1946)
     np.seterr(all="ignore")
@@ -136,11 +136,11 @@ def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq):
     decay[dr<=PRad] = 1./2./PRad
 
     # construct interpolation functions for each pin and delays the propagation
-    t = np.r_[1./sfreq:dynProfile.shape[1]/sfreq+1./sfreq:1./sfreq]
+    t = np.atleast_2d(np.r_[1./sfreq:dynProfile.shape[1]/sfreq+1./sfreq:1./sfreq]).T
     udyn = np.zeros((nsamp,nrec))
     for jj in range(npin):
-        loc_delays = t - delay[jj]
-        F = interpolate.interp1d(t,dynProfile[jj,:].flatten(),
+        loc_delays = t - delay[jj:jj+1]
+        F = interpolate.interp1d(t.flatten(),dynProfile[jj,:].flatten(),
             bounds_error=False,fill_value=0.)
         delayed = np.reshape(F(loc_delays.flatten()),(nsamp,nrec))
         udyn += delayed*decay[jj]

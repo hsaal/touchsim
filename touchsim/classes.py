@@ -120,7 +120,7 @@ class AfferentPopulation(object):
         if len(affclass)!=len(self):
             raise RuntimeError("Length of affclass vector must match number of afferents")
         for i,a in enumerate(self.afferents):
-            a.affclass=affclass[i] 
+            a.affclass=affclass[i]
 
     @property
     def location(self):
@@ -134,7 +134,9 @@ class AfferentPopulation(object):
         return list(map(lambda x:x.affclass==affclass,self.afferents))
 
     def response(self,stim):
-        r = list(map(lambda a:a.response(stim),self.afferents))
+        strain, udyn, fs = stim.propagate(self)
+        r = list(map(lambda a,i:lif_neuron(a,strain[:,i:i+1],udyn[:,i:i+1],fs),
+            self.afferents,range(len(self))))
         return Response(self,stim,r)
 
     @ property
