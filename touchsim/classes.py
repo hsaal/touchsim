@@ -17,6 +17,8 @@ class Afferent(object):
     affparams = constants.affparams
     affcol = constants.affcol
 
+    _butter_cache = {}
+
     def __init__(self,affclass,**args):
         self.affclass = affclass
         self.location = np.atleast_2d(args.get('location',np.array([[0., 0.]])))

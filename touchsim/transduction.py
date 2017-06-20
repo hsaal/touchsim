@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import linalg, interpolate, signal
+from numba import jit
 
 from .constants import ihbasis
 
@@ -155,9 +156,9 @@ def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq):
 
 def lif_neuron(aff,stimi,dstimi,srate):
 
-    np.seterr(under="ignore")
-
+    #np.seterr(under="ignore")
     p = aff.parameters
+    noisy = aff.noisy
     time_fac = srate/5000.
 
     # Make basis for post-spike current
@@ -168,7 +169,11 @@ def lif_neuron(aff,stimi,dstimi,srate):
     ih = np.dot(ih.T,p[10:12])
 
     if p[0]>0.:
-        b,a = signal.butter(3,p[0]*4./(time_fac*1000.))
+        if srate in aff._butter_cache.keys():
+            b,a = aff._butter_cache[srate]
+        else:
+            b,a = signal.butter(3,p[0]*4./(time_fac*1000.))
+            aff._butter_cache[srate] = (b,a)
         stimi = np.atleast_2d(signal.lfilter(b,a,stimi.flatten())).T
         dstimi = np.atleast_2d(signal.lfilter(b,a,dstimi.flatten())).T
 
@@ -177,15 +182,28 @@ def lif_neuron(aff,stimi,dstimi,srate):
     s_all = np.c_[stimi,-stimi,dstimi,-dstimi,ddstimi,-ddstimi]
     s_all[s_all<0.] = 0.
 
-    tau = p[9]     # decay time const
-    vleak = 0.     # resting potential
-
     Iinj = s_all[:,0]*p[1] + s_all[:,1]*p[2] + s_all[:,2]*p[3] + s_all[:,3]*p[4] \
         + s_all[:,4]*p[5] + s_all[:,5]*p[6]
 
     if aff.noisy:
        Iinj += p[8]*np.random.standard_normal(Iinj.shape)
 
+    slen = Iinj.shape[0]
+
+    Vmem = np.zeros(slen)
+    Sp = np.zeros((slen,1))
+
+    lif_sub(Vmem,Iinj,ih,Sp,time_fac,p)
+
+    spikes = np.flatnonzero(Sp)/srate + p[12]/1000.
+
+    #np.seterr(under="warn")
+
+    return spikes
+
+@jit(nopython=True)
+def lif_sub(Vmem,Iinj,ih,Sp,time_fac,p):
+    tau = p[9]
     if p[7]>0.:
         Iinj = p[7]*Iinj/(p[7]+np.abs(Iinj))
         Iinj[np.isnan(Iinj)] = 0.
@@ -193,28 +211,17 @@ def lif_neuron(aff,stimi,dstimi,srate):
     vthr = 1.   # threshold potential
     vr = 0.     # reset potential
 
-    slen = Iinj.shape[0]
     nh = ih.shape[0]
     ih_counter = nh
-
-    Vmem = vleak*np.ones((slen,1))
-    Sp = np.zeros((slen,1))
-
-    for ii in range(1,slen):  # Outer loop: 1 iter per time bin of input
+    for ii in range(Vmem.size):  # Outer loop: 1 iter per time bin of input
 
         if ih_counter==nh:
-            Vmem[ii] =  Vmem[ii-1] + (-(Vmem[ii-1]-vleak)/tau + Iinj[ii])/time_fac
+            Vmem[ii] =  Vmem[ii-1] + (-(Vmem[ii-1])/tau + Iinj[ii])/time_fac
         else:
-            Vmem[ii] =  Vmem[ii-1] + (-(Vmem[ii-1]-vleak)/tau + Iinj[ii] + ih[ih_counter])/time_fac
+            Vmem[ii] =  Vmem[ii-1] + (-(Vmem[ii-1])/tau + Iinj[ii] + ih[ih_counter])/time_fac
             ih_counter += 1
 
-        if Vmem[ii]>vthr and ih_counter>5*time_fac:
+        if (Vmem[ii]>vthr):# and ih_counter>(5*time_fac):
             Sp[ii] = 1.
             Vmem[ii] = vr
             ih_counter = 0
-
-    spikes = np.flatnonzero(Sp)/srate + aff.parameters[12]/1000.
-
-    np.seterr(under="warn")
-
-    return spikes
