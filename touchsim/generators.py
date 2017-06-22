@@ -2,8 +2,8 @@ import numpy as np
 import re
 from matplotlib import path
 
-import touchsim.constants
-from .classes import *
+from .classes import Afferent,AfferentPopulation,Stimulus
+from . import constants
 
 def affpop_single_models(**args):
     affclass = args.pop('affclass',Afferent.affparams.keys())
@@ -165,15 +165,3 @@ def apply_pad(trace,**args):
     if fs is not None:
         len = round(len*fs)
     trace = np.concatenate((np.zeros(len),trace,np.zeros(len)))
-
-def disp_hand(region=None):
-
-    if region is None:
-        idx = range(20)
-    else:
-        match = re.findall('[dDpPwWmMdDfFtT]\d?',region)
-        idx = [i for i,x in enumerate(constants.regionprop_tags) if x[0]==match[0]]
-        if len(match)>1:
-            idx = set(idx).intersection([i for i,x in enumerate(constants.regionprop_tags) if x[1]==match[1]])
-    return hv.Path(list(map(lambda x:x.T, [constants.regionprop_boundary[i] for i in idx])))\
-        (style=dict(color='k'))

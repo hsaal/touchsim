@@ -1,10 +1,6 @@
 import numpy as np
 import random
 import warnings
-try:
-    import holoviews as hv
-except:
-    hv = None
 
 from .transduction import skin_touch_profile, circ_load_vert_stress,\
     circ_load_dyn_wave, lif_neuron
@@ -154,13 +150,6 @@ class AfferentPopulation(object):
         r = lif_neuron(self,strain,udyn,fs)
         return Response(self,stim,r)
 
-    @ property
-    def disp(self):
-        if hv is None:
-            return None
-        return hv.NdOverlay({a:hv.Points(constants.coord2plot(self.location[self.find(a),:]))\
-            (style=dict(color=Afferent.affcol[a])) for a in Afferent.affclasses})
-
 class Stimulus:
 
     def __init__(self,**args):
@@ -192,16 +181,6 @@ class Stimulus:
         self.location = np.concatenate([self.location,other.location])
         self.compute_profile
         return self
-
-    def disp(self,grid=False):
-        if hv is None:
-            return None
-        d = {i:hv.Curve((self.time,self.trace[i]))
-             for i in range(self.trace.shape[0])}
-        if grid:
-            return hv.NdLayout(d)
-        else:
-            return hv.NdOverlay(d)
 
     def compute_profile(self):
         self._profile, self._profiledyn = skin_touch_profile(
@@ -246,27 +225,3 @@ class Response:
     def psth(self,bin_width=10):
         bins = np.r_[0:self.duration+bin_width/1000.:bin_width/1000.]
         return np.array(list(map(lambda x:np.histogram(x,bins=bins)[0],self.spikes)))
-
-    def disp_spikes(self):
-        if hv is None:
-            return None
-        idx = [i for i in range(len(self.spikes)) if len(self.spikes[i]>0)]
-        return hv.NdOverlay({i: hv.Spikes(self.spikes[idx[i]], kdims=['Time'])\
-            (plot=dict(position=0.1*i),
-            style=dict(color=Afferent.affcol[self.aff.afferents[idx[i]].affclass]))\
-            for i in range(len(idx))})(plot=dict(yaxis='bare'))
-
-    def disp_spatial(self,bin_width=10):
-        if hv is None:
-            return None
-        if np.isinf(bin_width):
-            r = self.rate()
-        else:
-            r = self.psth(bin_width)
-        hm = dict()
-        for t in range(r.shape[1]):
-            hm[t] = hv.NdOverlay({a:hv.Points(np.concatenate(
-                [constants.coord2plot(self.aff.location[self.aff.find(a),:]),
-                r[self.aff.find(a),t:t+1]],axis=1),vdims=['Firing rate'])\
-                (style=dict(color=Afferent.affcol[a])) for a in Afferent.affclasses})
-        return hv.HoloMap(hm)
