@@ -1,6 +1,6 @@
 import numpy as np
 from scipy import linalg, interpolate, signal
-from numba import jit
+from numba import jit,guvectorize,float64
 
 from .constants import ihbasis
 
@@ -84,11 +84,11 @@ def circ_load_vert_stress(P,PLoc,PRad,AffLoc,AffDepth):
     nsamp,npin = P.shape
     nrec = AffLoc.shape[0]
 
-    x = AffLoc[:,0] - PLoc[:,0].T    # (npin,nrec)
-    y = AffLoc[:,1] - PLoc[:,1].T    # (npin,nrec)
-    z = np.dot(np.ones((npin,1)),AffDepth[:]) # (npin,nrec)
+    x = AffLoc[:,0:1] - PLoc[:,0:1].T    # (npin,nrec)
+    y = AffLoc[:,1:2] - PLoc[:,1:2].T    # (npin,nrec)
+    z = np.dot(np.ones((npin,1)),AffDepth) # (npin,nrec)
 
-    r = np.hypot(x,y)
+    r = np.hypot(x,y).T
 
     # Pressure stress matrix (r,t,z)  (SNEDDON 1946)
     XSI = z/PRad
@@ -105,7 +105,7 @@ def circ_load_vert_stress(P,PLoc,PRad,AffLoc,AffDepth):
     # Pressure rotated stress matrix (x,y,z)
     eps = P/2./PRad/PRad/np.pi
 
-    s_z = eps * (J01 + XSI*J02)
+    s_z = np.dot(eps,(J01 + XSI*J02))
 
     return s_z
 
@@ -121,8 +121,8 @@ def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq):
     npin = dynProfile.shape[0]
     nrec = ia.size
 
-    dx = Ploc[:,0] - Rloc[ia,0].T    # (npin,nrec)
-    dy = Ploc[:,1] - Rloc[ia,1].T    # (npin,nrec)
+    dx = Ploc[:,0:1] - Rloc[ia,0:1].T    # (npin,nrec)
+    dy = Ploc[:,1:2] - Rloc[ia,1:2].T    # (npin,nrec)
     dr = np.sqrt(dx**2 + dy**2)
 
     # delay (everything is synchronous under the probe)
@@ -156,72 +156,75 @@ def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq):
 
 def lif_neuron(aff,stimi,dstimi,srate):
 
-    #np.seterr(under="ignore")
-    p = aff.parameters
-    noisy = aff.noisy
+    stimi = stimi.T
+    dstimi = dstimi.T
+
+    p = np.atleast_2d(aff.parameters)
+    noisy = np.atleast_2d(aff.noisy).T
     time_fac = srate/5000.
 
     # Make basis for post-spike current
-    ih = ihbasis
+    ihbas = ihbasis
     if time_fac!=1.:
-        ih = interpolate.interp1d(
-            np.r_[0.:0.0378:0.0002],ih,np.r_[0.:0.0378:0.0002/time_fac],kind='cubic')
-    ih = np.dot(ih.T,p[10:12])
+        ihbas = interpolate.interp1d(
+            np.r_[0.:0.0378:0.0002],ihbas,np.r_[0.:0.0378:0.0002/time_fac],kind='cubic')
+    ih = np.dot(p[:,10:12],ihbas)
 
-    if p[0]>0.:
-        if srate in aff._butter_cache.keys():
-            b,a = aff._butter_cache[srate]
-        else:
-            b,a = signal.butter(3,p[0]*4./(time_fac*1000.))
-            aff._butter_cache[srate] = (b,a)
-        stimi = np.atleast_2d(signal.lfilter(b,a,stimi.flatten())).T
-        dstimi = np.atleast_2d(signal.lfilter(b,a,dstimi.flatten())).T
+    uq,ia,ic = unique_rows(np.atleast_2d(aff.gid))
+    for i,gid in enumerate(uq):
+        bfilt,afilt = signal.butter(3,p[ia[i],0]*4./(time_fac*1000.))
+        stimi[ic==i] = signal.lfilter(bfilt,afilt,stimi[ic==i],axis=1)
+        dstimi[ic==i] = signal.lfilter(bfilt,afilt,dstimi[ic==i],axis=1)
 
-    ddstimi = np.r_[np.diff(dstimi,axis=0),np.zeros((1,1))]*time_fac
+    ddstimi = np.concatenate((np.diff(dstimi,axis=1),np.zeros((len(aff),1))),axis=1)*time_fac
 
-    s_all = np.c_[stimi,-stimi,dstimi,-dstimi,ddstimi,-ddstimi]
-    s_all[s_all<0.] = 0.
+    Iinj = weight_inputs(p,stimi,dstimi,ddstimi)
 
-    Iinj = s_all[:,0]*p[1] + s_all[:,1]*p[2] + s_all[:,2]*p[3] + s_all[:,3]*p[4] \
-        + s_all[:,4]*p[5] + s_all[:,5]*p[6]
+    if any(noisy):
+        Iinj += noisy*p[:,8:9]*np.random.standard_normal(Iinj.shape)
 
-    if aff.noisy:
-       Iinj += p[8]*np.random.standard_normal(Iinj.shape)
+    Vmem = np.zeros(Iinj.shape)
 
-    slen = Iinj.shape[0]
+    Sp = lif_sub(Vmem,Iinj,ih,p,time_fac)
 
-    Vmem = np.zeros(slen)
-    Sp = np.zeros((slen,1))
-
-    lif_sub(Vmem,Iinj,ih,Sp,time_fac,p)
-
-    spikes = np.flatnonzero(Sp)/srate + p[12]/1000.
-
-    #np.seterr(under="warn")
+    spikes = []
+    for i in range(len(aff)):
+        spikes.append(np.flatnonzero(Sp[i])/srate + p[i,12]/1000.)
 
     return spikes
 
-@jit(nopython=True)
-def lif_sub(Vmem,Iinj,ih,Sp,time_fac,p):
+@guvectorize([(float64[:],float64[:],float64[:],float64[:],float64[:])],
+    '(m),(n),(n),(n)->(n)',nopython=True,target='parallel')
+def weight_inputs(p,stimi,dstimi,ddstimi,Iinj):
+    for i in range(stimi.shape[0]):
+        Iinj[i]  = p[1]*max(stimi[i],0)
+        Iinj[i] += p[2]*max(-stimi[i],0)
+        Iinj[i] += p[3]*max(dstimi[i],0)
+        Iinj[i] += p[4]*max(-dstimi[i],0)
+        Iinj[i] += p[5]*max(ddstimi[i],0)
+        Iinj[i] += p[6]*max(-ddstimi[i],0)
+
+@guvectorize([(float64[:],float64[:],float64[:],float64[:],float64[:],float64[:])],
+    '(n),(n),(m),(o),()->(n)',nopython=True,target='parallel')
+def lif_sub(Vmem,Iinj,ih,p,time_fac,Sp):
     tau = p[9]
     if p[7]>0.:
         Iinj = p[7]*Iinj/(p[7]+np.abs(Iinj))
         Iinj[np.isnan(Iinj)] = 0.
 
-    vthr = 1.   # threshold potential
-    vr = 0.     # reset potential
-
-    nh = ih.shape[0]
+    nh = ih.size
     ih_counter = nh
-    for ii in range(Vmem.size):  # Outer loop: 1 iter per time bin of input
+    for ii in range(Vmem.size):
 
         if ih_counter==nh:
-            Vmem[ii] =  Vmem[ii-1] + (-(Vmem[ii-1])/tau + Iinj[ii])/time_fac
+            Vmem[ii] =  Vmem[ii-1] + (-(Vmem[ii-1])/tau + Iinj[ii])/time_fac[0]
         else:
-            Vmem[ii] =  Vmem[ii-1] + (-(Vmem[ii-1])/tau + Iinj[ii] + ih[ih_counter])/time_fac
+            Vmem[ii] =  Vmem[ii-1] + (-(Vmem[ii-1])/tau + Iinj[ii] + ih[ih_counter])/time_fac[0]
             ih_counter += 1
 
-        if (Vmem[ii]>vthr):# and ih_counter>(5*time_fac):
-            Sp[ii] = 1.
-            Vmem[ii] = vr
+        if Vmem[ii]>1. and ih_counter>(5*time_fac[0]):
+            Sp[ii] = 1
+            Vmem[ii] = 0.
             ih_counter = 0
+        else:
+            Sp[ii] = 0

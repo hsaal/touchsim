@@ -17,8 +17,6 @@ class Afferent(object):
     affparams = constants.affparams
     affcol = constants.affcol
 
-    _butter_cache = {}
-
     def __init__(self,affclass,**args):
         self.affclass = affclass
         self.location = np.atleast_2d(args.get('location',np.array([[0., 0.]])))
@@ -53,6 +51,10 @@ class Afferent(object):
             raise IOError("Afferent class must be SA1, RA, or PC")
         self._affclass = affclass
 
+    @property
+    def gid(self):
+        return np.asarray([Afferent.affclasses.index(self.affclass), self.idx])
+
     def __add__(self,other):
         if type(other) is Afferent:
             return AfferentPopulation(self,other)
@@ -65,7 +67,7 @@ class Afferent(object):
     def response(self,stim):
         strain, udyn, fs = stim.propagate(self)
         r = lif_neuron(self,strain,udyn,fs)
-        return r
+        return Response(AfferentPopulation(self),stim,r)
 
 class AfferentPopulation(object):
 
@@ -125,6 +127,10 @@ class AfferentPopulation(object):
             a.affclass=affclass[i]
 
     @property
+    def gid(self):
+        return np.asarray(list(map(lambda x:x.gid,self.afferents)))
+
+    @property
     def location(self):
         return np.asarray(list(map(lambda x:x.location.flatten(),self.afferents)))
 
@@ -132,13 +138,20 @@ class AfferentPopulation(object):
     def depth(self):
         return np.asarray(list(map(lambda x:x.depth,self.afferents)))
 
+    @property
+    def parameters(self):
+        return np.asarray(list(map(lambda x:x.parameters.flatten(),self.afferents)))
+
+    @property
+    def noisy(self):
+        return np.asarray(list(map(lambda x:x.noisy,self.afferents)))
+
     def find(self,affclass):
         return list(map(lambda x:x.affclass==affclass,self.afferents))
 
     def response(self,stim):
         strain, udyn, fs = stim.propagate(self)
-        r = list(map(lambda a,i:lif_neuron(a,strain[:,i:i+1],udyn[:,i:i+1],fs),
-            self.afferents,range(len(self))))
+        r = lif_neuron(self,strain,udyn,fs)
         return Response(self,stim,r)
 
     @ property

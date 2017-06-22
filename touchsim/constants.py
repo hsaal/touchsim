@@ -152,6 +152,9 @@ rot2plot = np.array([[np.cos(-theta), -np.sin(-theta)],[np.sin(-theta), np.cos(-
 def coord2plot(locs):
     return np.dot(locs,rot2plot)*pxl_per_mm + orig
 
+def plot2coord(locs):
+    return np.dot((locs-orig)/pxl_per_mm,rot2coord)
+
 regionprop_centroid = np.array([[50.8095981271947, 262.800234100663],
     [101.943881978594, 205.371420306624],
     [126.985990110355, 452.062407132244],

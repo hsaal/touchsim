@@ -36,7 +36,9 @@ def affpop_grid(**args):
     return a
 
 def affpop_hand(**args):
-    affclass = args.pop('affclass',Afferent.affparams.keys())
+    affclass = args.pop('affclass',Afferent.affclasses)
+    if type(affclass) is not list:
+        affclass = [affclass]
     region = args.pop('region',None)
 
     if region is None:
