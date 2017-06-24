@@ -1,6 +1,6 @@
 import numpy as np
-from scipy import linalg, interpolate, signal
-from numba import jit,guvectorize,float64,boolean
+from scipy import interpolate,signal
+from numba import guvectorize,float64,boolean
 
 from .constants import ihbasis
 
@@ -55,7 +55,7 @@ def skin_touch_profile(S0,xy,samp_freq,ProbeRad):
         S1p[0,:] = S1p[1,:]
         S1p[-1,:] = S1p[-2,:]
         # linsolve
-        Pdyn = linalg.solve(D,S1p.T,sym_pos=True)
+        Pdyn = np.linalg.solve(D,S1p.T)
     else:
         Pdyn = np.zeros(P.shape);
     return P, Pdyn
@@ -63,7 +63,7 @@ def skin_touch_profile(S0,xy,samp_freq,ProbeRad):
 def block_solve(S0,D):
     nz = S0!=0
     # find similar lines to solve the linear system
-    u,ia,ic = unique_rows(nz)
+    u,ia,ic = unique_rows(np.packbits(nz,axis=1))
     unz = nz[ia,:] # unique non-zeros elements
     P = np.zeros(S0.shape)
     for ii in range(0,ia.size):
@@ -71,7 +71,7 @@ def block_solve(S0,D):
         nzi = unz[ii,:]   # non-zeros elements
         ixgrid = np.ix_(lines,nzi)
         nzigrid = np.ix_(nzi,nzi)
-        P[ixgrid] = linalg.solve(D[nzigrid],S0[ixgrid].T,sym_pos=True).T
+        P[ixgrid] = np.linalg.solve(D[nzigrid],S0[ixgrid].T).T
     return P
 
 def unique_rows(data):
@@ -136,8 +136,7 @@ def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq):
     np.seterr(all="warn")
     decay[dr<=PRad] = 1./2./PRad
 
-    udyn = np.zeros((nrec,nsamp))
-    add_delays(delay,decay,dynProfile,sfreq,udyn)
+    udyn = add_delays(delay.T,decay.T,dynProfile,sfreq)
 
     udyn = udyn.T
     # copy results to all receptors at the same place
@@ -149,17 +148,18 @@ def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq):
     return udyn
 
 #@jit(nopython=True)
+@guvectorize([(float64[:],float64[:],float64[:,:],float64[:],float64[:])],
+    '(m),(m),(m,n),()->(n)',nopython=True,target='parallel')
 def add_delays(delay,decay,dynProfile,sfreq,udyn):
     delayed = np.zeros(udyn.shape)
     for jj in range(dynProfile.shape[0]):
-        for ii in range(delay.shape[1]):
-            delay_idx = int(np.rint(delay[jj,ii]/sfreq))
-            if delay_idx>0:
-                for i in range(delay_idx,dynProfile.shape[1]):
-                    delayed[ii,i] = dynProfile[jj,i+delay_idx]
-            else:
-                delayed[ii] = dynProfile[jj]
-        udyn += delayed*np.atleast_2d(decay[jj]).T
+        delay_idx = int(np.rint(delay[jj]/sfreq[0]))
+        if delay_idx>0:
+            for i in range(delay_idx,dynProfile.shape[1]):
+                delayed[i] = dynProfile[jj,i+delay_idx]
+        else:
+            delayed = dynProfile[jj]
+        udyn += delayed*decay[jj]
 
 def lif_neuron(aff,stimi,dstimi,srate):
     stimi = stimi.T
