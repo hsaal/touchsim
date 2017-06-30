@@ -98,9 +98,9 @@ class AfferentPopulation(object):
             self.afferents.append(Afferent(**args))
 
     def __str__(self):
-        return 'AfferentPopulation with ' + str(len(self)) + ' afferents:\n' +\
+        return 'AfferentPopulation with ' + str(len(self)) + ' afferents: ' +\
                 str(sum(self.find('SA1'))) + ' SA1, ' + str(sum(self.find('RA'))) +\
-                 ' RA, ' + str(sum(self.find('PC'))) + ' PC afferents.'
+                 ' RA, ' + str(sum(self.find('PC'))) + ' PC.'
 
     def __len__(self):
         return len(self.afferents)
@@ -191,6 +191,10 @@ class Stimulus:
         self.pin_radius = args.get('pin_radius',.05)
         self.compute_profile()
 
+    def __str__(self):
+        return 'Stimulus with ' + str(self.location.shape[0]) +\
+            ' pins and ' + str(self.duration) + ' s total duration.'
+
     @property
     def duration(self):
         return self.trace.shape[1]/self.fs
@@ -233,6 +237,11 @@ class Response:
         self.aff = a
         self.stim = s
         self.spikes = r
+
+    def __str__(self):
+        return 'Response consisting of:\n* ' + self.aff.__str__() + '\n* ' +\
+            self.stim.__str__() + '\n* ' + str(np.sum(self.psth(self.duration))) +\
+            ' total spikes.'
 
     def __len__(self):
         return len(self.aff)
