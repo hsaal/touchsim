@@ -1,4 +1,5 @@
 import numpy as np
+import re
 
 affdepths = {'SA1':.3,'RA':1.6,'PC':2.}
 
@@ -154,6 +155,16 @@ def coord2plot(locs):
 
 def plot2coord(locs):
     return np.dot((locs-orig)/pxl_per_mm,rot2coord)
+
+def region2idx(region):
+    if region is None:
+        return range(20)
+    else:
+        match = re.findall('[dDpPwWmMdDfFtT]\d?',region)
+        idx = [i for i,x in enumerate(constants.regionprop_tags) if x[0]==match[0]]
+        if len(match)>1:
+            return set(idx).intersection(
+                [i for i,x in enumerate(constants.regionprop_tags) if x[1]==match[1]])
 
 regionprop_centroid = np.array([[50.8095981271947, 262.800234100663],
     [101.943881978594, 205.371420306624],

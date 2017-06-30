@@ -44,12 +44,6 @@ def plot(obj=None,**args):
 
     elif obj is None:
         region = args.get('region',None)
-        if region is None:
-            idx = range(20)
-        else:
-            match = re.findall('[dDpPwWmMdDfFtT]\d?',region)
-            idx = [i for i,x in enumerate(constants.regionprop_tags) if x[0]==match[0]]
-            if len(match)>1:
-                idx = set(idx).intersection([i for i,x in enumerate(constants.regionprop_tags) if x[1]==match[1]])
+        idx = constants.region2idx(region)
         return hv.Path(list(map(lambda x:x.T, [constants.regionprop_boundary[i] for i in idx])))\
             (style=dict(color='k'))
