@@ -215,7 +215,7 @@ class Stimulus:
 
         self.trace = np.concatenate([self.trace,other.trace])
         self.location = np.concatenate([self.location,other.location])
-        self.compute_profile
+        self.compute_profile()
         return self
 
     def compute_profile(self):

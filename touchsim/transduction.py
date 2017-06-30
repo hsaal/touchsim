@@ -62,8 +62,19 @@ def skin_touch_profile(S0,xy,samp_freq,ProbeRad):
 
 def block_solve(S0,D):
     nz = S0!=0
+    # do clever packing to speed up unique_rows
+    if nz.shape[1]<128:
+        packed = np.packbits(nz,axis=1)
+    else:
+        nz_ext = nz
+        add = nz.shape[1] % 64
+        if add>0:
+            nz_ext = np.concatenate((nz,
+                np.zeros((nz.shape[0],64-add),dtype=np.bool)),axis=1)
+        packed = np.packbits(nz_ext,axis=1).view(np.uint64)
+
     # find similar lines to solve the linear system
-    u,ia,ic = unique_rows(np.packbits(nz,axis=1))
+    u,ia,ic = unique_rows(packed)
     unz = nz[ia,:] # unique non-zeros elements
     P = np.zeros(S0.shape)
     for ii in range(0,ia.size):
@@ -147,7 +158,6 @@ def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq):
 
     return udyn
 
-#@jit(nopython=True)
 @guvectorize([(float64[:],float64[:],float64[:,:],float64[:],float64[:])],
     '(m),(m),(m,n),()->(n)',nopython=True,target='parallel')
 def add_delays(delay,decay,dynProfile,sfreq,udyn):
