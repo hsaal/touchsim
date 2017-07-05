@@ -161,15 +161,16 @@ def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq):
 @guvectorize([(float64[:],float64[:],float64[:,:],float64[:],float64[:])],
     '(m),(m),(m,n),()->(n)',nopython=True,target='parallel')
 def add_delays(delay,decay,dynProfile,sfreq,udyn):
-    delayed = np.zeros(udyn.shape)
+    for i in range(udyn.shape[0]):
+        udyn[i] = 0;
     for jj in range(dynProfile.shape[0]):
         delay_idx = int(np.rint(delay[jj]/sfreq[0]))
         if delay_idx>0:
             for i in range(delay_idx,dynProfile.shape[1]):
-                delayed[i] = dynProfile[jj,i+delay_idx]
+                udyn[i] += dynProfile[jj,i+delay_idx]*decay[jj]
         else:
-            delayed = dynProfile[jj]
-        udyn += delayed*decay[jj]
+            for i in range(dynProfile.shape[1]):
+                udyn[i] = dynProfile[jj,i]*decay[jj]
 
 def lif_neuron(aff,stimi,dstimi,srate):
     stimi = stimi.T
@@ -199,7 +200,7 @@ def lif_neuron(aff,stimi,dstimi,srate):
 
     spikes = []
     for i in range(len(aff)):
-        spikes.append(np.flatnonzero(Sp[i])/srate + p[i,12]/1000.)
+        spikes.append(np.flatnonzero(Sp[i])/srate + p[i,12]/1000. + 1./srate)
 
     return spikes
 

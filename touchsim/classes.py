@@ -19,7 +19,7 @@ class Afferent(object):
         self.depth = args.get('depth',None)
         self.idx = args.get('idx',None)
         self.noisy = args.get('noisy',True)
-        self.delay = args.get('delay',True)
+        self.delay = args.get('delay',False)
 
         # set afferent depth
         if self.depth is None:
@@ -32,7 +32,7 @@ class Afferent(object):
         self.parameters = p[self.idx]
 
         if not self.delay:
-            self.parameters[10] = 0.;
+            self.parameters[12] = 0.;
 
     def __len__(self):
         return 1

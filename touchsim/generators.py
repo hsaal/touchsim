@@ -92,7 +92,7 @@ def stim_ramp(**args):
     len = args.get('len',1.)
     loc = np.array(args.get('loc',np.array([0.,0.])))
     fs = args.get('fs',5000.)
-    ramp_len = args.get('ramp_len',.1)
+    ramp_len = args.get('ramp_len',.05)
     pin_radius = args.get('pin_radius',.5)
     pre_indent = args.get('pre_indent',0.)
     pad_len = args.get('pad_len',0.)
