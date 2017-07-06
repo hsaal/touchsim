@@ -164,13 +164,13 @@ def add_delays(delay,decay,dynProfile,sfreq,udyn):
     for i in range(udyn.shape[0]):
         udyn[i] = 0;
     for jj in range(dynProfile.shape[0]):
-        delay_idx = int(np.rint(delay[jj]/sfreq[0]))
+        delay_idx = int(np.rint(delay[jj]*sfreq[0]))
         if delay_idx>0:
             for i in range(delay_idx,dynProfile.shape[1]):
-                udyn[i] += dynProfile[jj,i+delay_idx]*decay[jj]
+                udyn[i] += dynProfile[jj,i-delay_idx]*decay[jj]
         else:
             for i in range(dynProfile.shape[1]):
-                udyn[i] = dynProfile[jj,i]*decay[jj]
+                udyn[i] += dynProfile[jj,i]*decay[jj]
 
 def lif_neuron(aff,stimi,dstimi,srate):
     stimi = stimi.T

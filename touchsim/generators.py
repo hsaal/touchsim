@@ -145,10 +145,10 @@ def apply_ramp(trace,**args):
         trace[:len] *= np.linspace(0,1,len)
         trace[-len:] *= np.linspace(1,0,len)
     elif ramp_type=='sin' or ramp_type=='sine':
-        trace[:len] *= np.cos(np.linspace(np.pi,2.*np.pi,len)/2.+.5)
-        trace[-len:] *= np.cos(np.linspace(0.,np.pi,len)/2.+.5)
+        trace[:len] *= np.cos(np.linspace(np.pi,2.*np.pi,len))/2.+.5
+        trace[-len:] *= np.cos(np.linspace(0.,np.pi,len))/2.+.5
     else:
-        raise IOError("ramp_type must be 'lin' or 'sin'")
+        raise RuntimeError("ramp_type must be 'lin' or 'sin'")
 
 def apply_pad(trace,**args):
     len = args.get('len',.05)

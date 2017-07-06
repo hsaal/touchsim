@@ -29,7 +29,7 @@ class Afferent(object):
         p = Afferent.affparams.get(self.affclass)
         if self.idx is None:
             self.idx = random.randint(0,p.shape[0]-1)
-        self.parameters = p[self.idx]
+        self.parameters = p[self.idx].copy()
 
         if not self.delay:
             self.parameters[12] = 0.;
