@@ -74,7 +74,7 @@ def block_solve(S0,D):
         packed = np.packbits(nz_ext,axis=1).view(np.uint64)
 
     # find similar lines to solve the linear system
-    u,ia,ic = unique_rows(packed)
+    u,ia,ic = np.unique(packed,axis=0,return_index=True,return_inverse=True)
     unz = nz[ia,:] # unique non-zeros elements
     P = np.zeros(S0.shape)
     for ii in range(0,ia.size):
@@ -84,11 +84,6 @@ def block_solve(S0,D):
         nzigrid = np.ix_(nzi,nzi)
         P[ixgrid] = np.linalg.solve(D[nzigrid],S0[ixgrid].T).T
     return P
-
-def unique_rows(data):
-    uniq, ia, ic = np.unique(data.view(data.dtype.descr * data.shape[1]),
-        return_index=True,return_inverse=True)
-    return uniq.view(data.dtype).reshape(-1, data.shape[1]), ia, ic
 
 def circ_load_vert_stress(P,PLoc,PRad,AffLoc,AffDepth):
     AffDepth = np.atleast_2d(np.array(AffDepth))
@@ -123,7 +118,7 @@ def circ_load_vert_stress(P,PLoc,PRad,AffLoc,AffDepth):
 def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq):
     # compute shift and decay only once for each unique x,y coord
     if Rloc.shape[0]>1:
-        u,ia,ic = unique_rows(Rloc)
+        u,ia,ic = np.unique(Rloc,axis=0,return_index=True,return_inverse=True)
     else:
         ia = np.array([0])
         ic = np.array([0])
@@ -187,7 +182,8 @@ def lif_neuron(aff,stimi,dstimi,srate):
         ihbas = f(np.linspace(0.,0.0378,np.rint(0.0378/(0.002/time_fac))))
     ih = np.dot(p[:,10:12],ihbas)
 
-    uq,ia,ic = unique_rows(np.atleast_2d(aff.gid))
+    uq,ia,ic = np.unique(np.atleast_2d(aff.gid),axis=0,
+        return_index=True,return_inverse=True)
     for i,gid in enumerate(uq):
         bfilt,afilt = signal.butter(3,p[ia[i],0]*4./(time_fac*1000.))
         stimi[ic==i] = signal.lfilter(bfilt,afilt,stimi[ic==i],axis=1)
