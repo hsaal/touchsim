@@ -147,14 +147,14 @@ density = {('SA1','p'):10.,('RA','p'):25., ('PC','p'):10.,
 orig = np.array([126.985990110355, 452.062407132244])
 pxl_per_mm = 2.18388294387421
 theta = -1.24458187646155
-rot2coord = np.array([[np.cos(theta), -np.sin(theta)],[np.sin(theta), np.cos(theta)]])
-rot2plot = np.array([[np.cos(-theta), -np.sin(-theta)],[np.sin(-theta), np.cos(-theta)]])
+rot2hand = np.array([[np.cos(theta), -np.sin(theta)],[np.sin(theta), np.cos(theta)]])
+rot2pixel = np.array([[np.cos(-theta), -np.sin(-theta)],[np.sin(-theta), np.cos(-theta)]])
 
-def coord2plot(locs):
-    return np.dot(locs,rot2plot)*pxl_per_mm + orig
+def hand2pixel(locs):
+    return np.dot(locs,rot2pixel)*pxl_per_mm + orig
 
-def plot2coord(locs):
-    return np.dot((locs-orig)/pxl_per_mm,rot2coord)
+def pixel2hand(locs):
+    return np.dot((locs-orig)/pxl_per_mm,rot2hand)
 
 def region2idx(region):
     if region is None:

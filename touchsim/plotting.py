@@ -7,7 +7,7 @@ from .classes import Afferent,AfferentPopulation,Stimulus,Response
 
 def plot(obj=None,**args):
     if type(obj) is AfferentPopulation:
-        return hv.NdOverlay({a:hv.Points(constants.coord2plot(obj.location[obj.find(a),:]))\
+        return hv.NdOverlay({a:hv.Points(constants.hand2pixel(obj.location[obj.find(a),:]))\
             (style=dict(color=Afferent.affcol[a])) for a in Afferent.affclasses})
 
     elif type(obj) is Stimulus:
@@ -37,7 +37,7 @@ def plot(obj=None,**args):
             hm = dict()
             for t in range(r.shape[1]):
                 hm[t] = hv.NdOverlay({a:hv.Points(np.concatenate(
-                    [constants.coord2plot(obj.aff.location[obj.aff.find(a),:]),
+                    [constants.hand2pixel(obj.aff.location[obj.aff.find(a),:]),
                     r[obj.aff.find(a),t:t+1]],axis=1),vdims=['Firing rate'])\
                     (style=dict(color=Afferent.affcol[a])) for a in Afferent.affclasses})
             return hv.HoloMap(hm)

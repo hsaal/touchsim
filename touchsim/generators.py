@@ -56,7 +56,7 @@ def affpop_hand(**args):
             xy = xy[ind,:]
 
             xy -= constants.orig
-            xy = np.dot(xy,constants.rot2coord)/constants.pxl_per_mm
+            xy = np.dot(xy,constants.rot2hand)/constants.pxl_per_mm
             for l in range(xy.shape[0]):
                 affpop.afferents.append(Afferent(a,location=xy[l,:],**args))
     return affpop
