@@ -1,5 +1,7 @@
 import numpy as np
 import re
+from scipy.sparse import csr_matrix
+from scipy.ndimage.morphology import binary_fill_holes,binary_dilation
 
 affdepths = {'SA1':.3,'RA':1.6,'PC':2.}
 
@@ -753,3 +755,30 @@ regionprop_boundary = [np.array([[8.,9.,9.,9.,10.,11.,12.,13.,14.,15.,16.,17.,18
     418.,417.,417.,416.,415.,414.,413.,412.,411.,410.,409.,408.,407.,406.,405.,404.,403.,
     402.,401.,400.,399.,398.,397.,396.,395.,394.,393.,392.,391.,390.,389.,388.,387.,386.,
     385.,384.,383.,382.,381.,380.,379.,378.,377.,376]])]
+
+def construct_dist_matrix():
+    hand = np.zeros((535,422),dtype=np.bool).T
+    for b in regionprop_boundary:
+        hand[b[0,:].astype(np.int64)-1,b[1,:].astype(np.int64)-1] = 1
+    hand = binary_fill_holes(hand)
+    hand = binary_dilation(hand)
+
+    idx = np.flatnonzero(hand.flatten())
+    pos = np.reshape(np.arange(hand.size),hand.shape)
+
+    shifts = [(1,0),(-1,0),(0,1),(0,-1),(1, 1),(-1,-1),(1,-1),(-1, 1)]
+    dist = [1., 1., 1., 1., np.sqrt(2.), np.sqrt(2.), np.sqrt(2.), np.sqrt(2.)]
+
+    nodes = np.array([],dtype=np.int64).reshape(0,2)
+    weights = np.array([])
+    for i in range(len(dist)):
+        mask = np.logical_and(hand,np.roll(hand,shifts[i],axis=(0,1)))
+        ind = np.flatnonzero(mask.flatten()[idx])
+        pos_shift = np.roll(pos,shifts[i],axis=(0,1)).flatten()
+        nodes = np.vstack((nodes, np.hstack((idx[ind][:,None],pos_shift[idx[ind]][:,None]))))
+        weights = np.concatenate((weights, np.tile(dist[i]/pxl_per_mm,ind.size)))
+
+    R = csr_matrix((weights,(nodes[:,0],nodes[:,1])),shape=(hand.size,hand.size))
+    return R
+
+hand_dist_matrix = construct_dist_matrix()

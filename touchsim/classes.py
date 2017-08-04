@@ -177,8 +177,8 @@ class AfferentPopulation(object):
     def find(self,affclass):
         return list(map(lambda x:x.affclass==affclass,self.afferents))
 
-    def response(self,stim):
-        strain, udyn, fs = stim.propagate(self)
+    def response(self,stim,true_dist=False):
+        strain, udyn, fs = stim.propagate(self,true_dist)
         r = lif_neuron(self,strain,udyn,fs)
         return Response(self,stim,r)
 
@@ -222,11 +222,12 @@ class Stimulus:
         self._profile, self._profiledyn = skin_touch_profile(
             self.trace,self.location,self.fs,self.pin_radius)
 
-    def propagate(self,aff):
+    def propagate(self,aff,true_dist=False):
         stat_comp = circ_load_vert_stress(
             self._profile,self.location,self.pin_radius,aff.location,aff.depth)
         dyn_comp = circ_load_dyn_wave(
-            self._profiledyn,self.location,self.pin_radius,aff.location,aff.depth,self.fs)
+            self._profiledyn,self.location,self.pin_radius,aff.location,
+                aff.depth,self.fs,true_dist)
         return stat_comp, dyn_comp, self.fs
 
 class Response:
