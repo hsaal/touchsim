@@ -193,32 +193,28 @@ def add_delays(delay,decay,dynProfile,sfreq,udyn):
             for i in range(dynProfile.shape[1]):
                 udyn[i] += dynProfile[jj,i]*decay[jj]
 
-def lif_neuron(aff,stimi,dstimi,srate):
+def lif_neuron(aff,stimi,dstimi):
+    srate = 5000. # fixed sampling frequency
+
     stimi = stimi.T
     dstimi = dstimi.T
 
     p = np.atleast_2d(aff.parameters)
-    time_fac = srate/5000.
 
     # Make basis for post-spike current
-    ihbas = ihbasis
-    if time_fac!=1.:
-        f = interpolate.interp1d(
-            np.linspace(0.,0.0378,190),ihbas,'cubic')
-        ihbas = f(np.linspace(0.,0.0378,np.rint(0.0378/(0.002/time_fac))))
-    ih = np.dot(p[:,10:12],ihbas)
+    ih = np.dot(p[:,10:12],ihbasis)
 
     uq,ia,ic = np.unique(np.atleast_2d(aff.gid),axis=0,
         return_index=True,return_inverse=True)
-    for i,gid in enumerate(uq):
-        bfilt,afilt = signal.butter(3,p[ia[i],0]*4./(time_fac*1000.))
+    for i in range(uq.shape[0]):
+        bfilt,afilt = signal.butter(3,p[ia[i],0]*4./1000.)
         stimi[ic==i] = signal.lfilter(bfilt,afilt,stimi[ic==i],axis=1)
         dstimi[ic==i] = signal.lfilter(bfilt,afilt,dstimi[ic==i],axis=1)
 
-    Iinj = weight_inputs(p,stimi,dstimi,time_fac)
+    Iinj = weight_inputs(p,stimi,dstimi)
 
     Vmem = np.zeros(Iinj.shape)
-    Sp = lif_sub(Vmem,Iinj,ih,p,time_fac,aff.noisy)
+    Sp = lif_sub(Vmem,Iinj,ih,p,aff.noisy)
 
     spikes = []
     for i in range(len(aff)):
@@ -226,9 +222,9 @@ def lif_neuron(aff,stimi,dstimi,srate):
 
     return spikes
 
-@guvectorize([(float64[:],float64[:],float64[:],float64[:],float64[:])],
-    '(m),(n),(n),()->(n)',nopython=True,target='parallel')
-def weight_inputs(p,stimi,dstimi,time_fac,Iinj):
+@guvectorize([(float64[:],float64[:],float64[:],float64[:])],
+    '(m),(n),(n)->(n)',nopython=True,target='parallel')
+def weight_inputs(p,stimi,dstimi,Iinj):
     for i in range(stimi.shape[0]):
         if np.sign(stimi[i])>=0:
             Iinj[i]  = p[1]*stimi[i]
@@ -240,15 +236,15 @@ def weight_inputs(p,stimi,dstimi,time_fac,Iinj):
         else:
             Iinj[i]  += -p[4]*dstimi[i]
 
-        ddstimi = (dstimi[i+1 % stimi.shape[0]]-dstimi[i])*time_fac[0]
+        ddstimi = (dstimi[i+1 % stimi.shape[0]]-dstimi[i])
         if np.sign(ddstimi)>=0:
             Iinj[i]  += p[5]*ddstimi
         else:
             Iinj[i]  += -p[6]*ddstimi
 
-@guvectorize([(float64[:],float64[:],float64[:],float64[:],float64[:],boolean[:],
-    float64[:])],'(n),(n),(m),(o),(),()->(n)',nopython=True,target='parallel')
-def lif_sub(Vmem,Iinj,ih,p,time_fac,noisy,Sp):
+@guvectorize([(float64[:],float64[:],float64[:],float64[:],boolean[:],
+    float64[:])],'(n),(n),(m),(o),()->(n)',nopython=True,target='parallel')
+def lif_sub(Vmem,Iinj,ih,p,noisy,Sp):
     if noisy[0]:
         Iinj += p[8]*np.random.standard_normal(Iinj.shape)
 
@@ -262,12 +258,12 @@ def lif_sub(Vmem,Iinj,ih,p,time_fac,noisy,Sp):
     for ii in range(Vmem.size):
 
         if ih_counter==nh:
-            Vmem[ii] =  Vmem[ii-1] + (-(Vmem[ii-1])/tau + Iinj[ii])/time_fac[0]
+            Vmem[ii] =  Vmem[ii-1] + (-(Vmem[ii-1])/tau + Iinj[ii])
         else:
-            Vmem[ii] =  Vmem[ii-1] + (-(Vmem[ii-1])/tau + Iinj[ii] + ih[ih_counter])/time_fac[0]
+            Vmem[ii] =  Vmem[ii-1] + (-(Vmem[ii-1])/tau + Iinj[ii] + ih[ih_counter])
             ih_counter += 1
 
-        if Vmem[ii]>1. and ih_counter>(5*time_fac[0]):
+        if Vmem[ii]>1. and ih_counter>5:
             Sp[ii] = 1
             Vmem[ii] = 0.
             ih_counter = 0

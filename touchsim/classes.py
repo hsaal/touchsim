@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import warnings
+from scipy.signal import resample
 
 from .transduction import skin_touch_profile, circ_load_vert_stress,\
     circ_load_dyn_wave, lif_neuron
@@ -62,7 +63,10 @@ class Afferent(object):
 
     def response(self,stim,true_dist=False):
         strain, udyn, fs = stim.propagate(self,true_dist)
-        r = lif_neuron(self,strain,udyn,fs)
+        if fs is not 5000:
+            strain = resample(strain,int(round(strain.shape[0]/fs*5000.)))
+            udyn = resample(udyn,int(round(udyn.shape[0]/fs*5000.)))
+        r = lif_neuron(self,strain,udyn)
         return Response(AfferentPopulation(self),stim,r)
 
 class AfferentPopulation(object):
@@ -179,7 +183,10 @@ class AfferentPopulation(object):
 
     def response(self,stim,true_dist=False):
         strain, udyn, fs = stim.propagate(self,true_dist)
-        r = lif_neuron(self,strain,udyn,fs)
+        if fs is not 5000:
+            strain = resample(strain,int(round(strain.shape[0]/fs*5000.)))
+            udyn = resample(udyn,int(round(udyn.shape[0]/fs*5000.)))
+        r = lif_neuron(self,strain,udyn)
         return Response(self,stim,r)
 
 class Stimulus:
