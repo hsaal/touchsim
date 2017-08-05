@@ -171,10 +171,8 @@ def dist_on_hand(xy_pin,xy_aff):
         flip = True
         xyp,xya = xya,xyp
 
-    D = np.zeros((xyp.size,xya.size))
-    for i,x in enumerate(xyp):
-        dist = dijkstra(hand_dist_matrix,directed=False,indices=x)
-        D[i] = dist[xya]
+    D = dijkstra(hand_dist_matrix,directed=False,indices=xyp)
+    D = D[:,xya]
 
     if flip:
         D = D.T

@@ -775,7 +775,8 @@ def construct_dist_matrix():
         mask = np.logical_and(hand,np.roll(hand,shifts[i],axis=(0,1)))
         ind = np.flatnonzero(mask.flatten()[idx])
         pos_shift = np.roll(pos,shifts[i],axis=(0,1)).flatten()
-        nodes = np.vstack((nodes, np.hstack((idx[ind][:,None],pos_shift[idx[ind]][:,None]))))
+        nodes = np.vstack((nodes,
+            np.hstack((idx[ind][:,None],pos_shift[idx[ind]][:,None]))))
         weights = np.concatenate((weights, np.tile(dist[i]/pxl_per_mm,ind.size)))
 
     R = csr_matrix((weights,(nodes[:,0],nodes[:,1])),shape=(hand.size,hand.size))

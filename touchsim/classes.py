@@ -60,8 +60,8 @@ class Afferent(object):
             RuntimeError("Can only add elements of type Afferent or AfferentPopulation.")
         return self
 
-    def response(self,stim):
-        strain, udyn, fs = stim.propagate(self)
+    def response(self,stim,true_dist=False):
+        strain, udyn, fs = stim.propagate(self,true_dist)
         r = lif_neuron(self,strain,udyn,fs)
         return Response(AfferentPopulation(self),stim,r)
 
