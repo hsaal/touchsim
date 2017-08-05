@@ -63,6 +63,21 @@ def test_RA_ramp():
     assert r.spikes[0][0]>=0.0092-timing_slack
     assert r.spikes[0][0]<=0.0092+timing_slack
 
+def test_RA_ramp_resample():
+    '''
+    Matlab code:
+    s = stim_ramp([],[],[],100,[],[],1);
+    a = Afferent('RA','idx',1,'noisy',false);
+    '''
+    s = ts.stim_ramp(pin_radius=1.,fs=100.)
+    a = ts.Afferent('RA',idx=0,noisy=False)
+    r = a.response(s)
+
+    assert r.rate()[0,0]>=7.-rate_slack
+    assert r.rate()[0,0]<=7.+rate_slack
+    assert r.spikes[0][0]>=0.0088-timing_slack
+    assert r.spikes[0][0]<=0.0088+timing_slack
+
 def test_RA_sine():
     '''
     Matlab code:
@@ -93,7 +108,7 @@ def test_PC_ramp():
     assert r.spikes[0][0]>=0.0004-timing_slack
     assert r.spikes[0][0]<=0.0004+timing_slack
 
-def test_PC_sine1():
+def test_PC_sine():
     '''
     Matlab code:
     s = stim_sine(250,0.005,0);
@@ -108,32 +123,17 @@ def test_PC_sine1():
     assert r.spikes[0][0]>=0.0042-timing_slack
     assert r.spikes[0][0]<=0.0042+timing_slack
 
-def test_PC_sine2():
+def test_PC_sine_resample():
     '''
     Matlab code:
-    s = stim_sine(250,0.01,0);
-    a = Afferent('PC','idx',1,'location',[25 0],'noisy',false);
+    s = stim_sine(250,0.005,0,[],[],1000);
+    a = Afferent('PC','idx',1,'noisy',false);
     '''
-    s = ts.stim_sine(freq=250.,amp=0.01)
-    a = ts.Afferent('PC',idx=0,location=[25.,0.],noisy=False)
+    s = ts.stim_sine(freq=250.,amp=0.005,fs=1000.)
+    a = ts.Afferent('PC',idx=0,noisy=False)
     r = a.response(s)
 
-    assert r.rate()[0,0]>=40.-rate_slack
-    assert r.rate()[0,0]<=40.+rate_slack
-    assert r.spikes[0][0]>=0.0238-timing_slack
-    assert r.spikes[0][0]<=0.0238+timing_slack
-
-def test_PC_sine3():
-    '''
-    Matlab code:
-    s = stim_sine(250,0.01,0);
-    a = Afferent('PC','idx',1,'location',[50 0],'noisy',false);
-    '''
-    s = ts.stim_sine(freq=250.,amp=0.01)
-    a = ts.Afferent('PC',idx=0,location=[50.,0.],noisy=False)
-    r = a.response(s)
-
-    assert r.rate()[0,0]>=29.-rate_slack
-    assert r.rate()[0,0]<=29.+rate_slack
-    assert r.spikes[0][0]>=0.043-timing_slack
-    assert r.spikes[0][0]<=0.043+timing_slack
+    assert r.rate()[0,0]>=246.-rate_slack
+    assert r.rate()[0,0]<=246.+rate_slack
+    assert r.spikes[0][0]>=0.0042-timing_slack
+    assert r.spikes[0][0]<=0.0042+timing_slack
