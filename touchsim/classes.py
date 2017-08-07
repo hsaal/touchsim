@@ -4,7 +4,7 @@ import warnings
 from scipy.signal import resample
 
 from .transduction import skin_touch_profile, circ_load_vert_stress,\
-    circ_load_dyn_wave, lif_neuron
+    circ_load_dyn_wave, lif_neuron, check_pin_radius
 from . import constants
 
 class Afferent(object):
@@ -226,6 +226,11 @@ class Stimulus:
         return self
 
     def compute_profile(self):
+        new_radius = check_pin_radius(self.location,self.pin_radius)
+        if self.pin_radius>new_radius:
+            warnings.warn("Pin radius too big and has been adjusted to %.1f" % new_radius)
+            self.pin_radius = new_radius
+
         self._profile, self._profiledyn = skin_touch_profile(
             self.trace,self.location,self.fs,self.pin_radius)
 

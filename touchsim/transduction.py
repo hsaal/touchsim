@@ -5,6 +5,19 @@ from numba import guvectorize,float64,boolean
 
 from .constants import ihbasis,hand_dist_matrix,hand2pixel
 
+def check_pin_radius(loc,rad):
+    if loc.shape[0]>1:
+        if loc.shape[0]>=3:
+            dx = loc[:,0:1] - loc[:,0:1].T
+            dy = loc[:,1:2] - loc[:,1:2].T
+            dist = np.sqrt(dx**2. + dy**2)
+            dist[dist==0] = np.nan
+            return np.amin(dist)/2.
+        elif loc.shape[0]==2:
+            return np.sqrt(np.sum((loc[0]-loc[1])**2))/2.
+    else:
+        return rad
+
 def skin_touch_profile(S0,xy,samp_freq,ProbeRad):
     S0 = S0.T # hack, needs to be fixed
     s = S0.shape
