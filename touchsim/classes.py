@@ -1,11 +1,13 @@
 import numpy as np
 import random
 import warnings
+from math import isclose
 from scipy.signal import resample
 
 from .transduction import skin_touch_profile, circ_load_vert_stress,\
     circ_load_dyn_wave, lif_neuron, check_pin_radius
 from . import constants
+from .surface import null_surface
 
 class Afferent(object):
 
@@ -21,6 +23,7 @@ class Afferent(object):
         self.idx = args.get('idx',None)
         self.noisy = args.get('noisy',True)
         self.delay = args.get('delay',False)
+        self.surface = args.get('surface',null_surface)
 
         # set afferent depth
         if self.depth is None:
@@ -61,9 +64,9 @@ class Afferent(object):
             RuntimeError("Can only add elements of type Afferent or AfferentPopulation.")
         return self
 
-    def response(self,stim,true_dist=False):
-        strain, udyn, fs = stim.propagate(self,true_dist)
-        if fs is not 5000:
+    def response(self,stim):
+        strain, udyn, fs = stim.propagate(self)
+        if not isclose(fs,5000.):
             strain = resample(strain,int(round(strain.shape[0]/fs*5000.)))
             udyn = resample(udyn,int(round(udyn.shape[0]/fs*5000.)))
         r = lif_neuron(self,strain,udyn)
@@ -73,6 +76,8 @@ class AfferentPopulation(object):
 
     def __init__(self,*afferents,**args):
         self.afferents = list(afferents)
+
+        self.surface = args.pop('surface',null_surface)
 
         broadcast = aflag = False
         for key in args:
@@ -123,7 +128,8 @@ class AfferentPopulation(object):
         elif idx in Afferent.affclasses:
             return self[self.find(idx)]
         else:
-            raise TypeError("Indices must be integers, slices, lists, or affclass.")
+            raise TypeError(
+                "Indices must be integers, slices, lists, or affclass.")
 
     def __add__(self,other):
         a = AfferentPopulation()
@@ -132,7 +138,8 @@ class AfferentPopulation(object):
         elif type(other) is AfferentPopulation:
             a.afferents.extend(other)
         else:
-            raise TypeError("Can only add elements of type Afferent or AfferentPopulation.")
+            raise TypeError(
+                "Can only add elements of type Afferent or AfferentPopulation.")
         return a
 
     def __iadd__(self,other):
@@ -141,7 +148,8 @@ class AfferentPopulation(object):
         elif type(other) is AfferentPopulation:
             self.afferents.extend(other.afferents)
         else:
-            raise TypeError("Can only add elements of type Afferent or AfferentPopulation.")
+            raise TypeError(
+                "Can only add elements of type Afferent or AfferentPopulation.")
         return self
 
     def num(self):
@@ -154,7 +162,8 @@ class AfferentPopulation(object):
     @affclass.setter
     def affclass(self,affclass):
         if len(affclass)!=len(self):
-            raise RuntimeError("Length of affclass vector must match number of afferents")
+            raise RuntimeError(
+                "Length of affclass vector must match number of afferents")
         for i,a in enumerate(self.afferents):
             a.affclass=affclass[i]
 
@@ -164,7 +173,8 @@ class AfferentPopulation(object):
 
     @property
     def location(self):
-        return np.asarray(list(map(lambda x:x.location.flatten(),self.afferents)))
+        return np.asarray(list(map(lambda x:x.location.flatten(),
+            self.afferents)))
 
     @property
     def depth(self):
@@ -172,7 +182,8 @@ class AfferentPopulation(object):
 
     @property
     def parameters(self):
-        return np.asarray(list(map(lambda x:x.parameters.flatten(),self.afferents)))
+        return np.asarray(list(map(lambda x:x.parameters.flatten(),
+            self.afferents)))
 
     @property
     def noisy(self):
@@ -181,15 +192,15 @@ class AfferentPopulation(object):
     def find(self,affclass):
         return list(map(lambda x:x.affclass==affclass,self.afferents))
 
-    def response(self,stim,true_dist=False):
-        strain, udyn, fs = stim.propagate(self,true_dist)
-        if fs is not 5000:
+    def response(self,stim):
+        strain, udyn, fs = stim.propagate(self)
+        if not isclose(fs,5000.):
             strain = resample(strain,int(round(strain.shape[0]/fs*5000.)))
             udyn = resample(udyn,int(round(udyn.shape[0]/fs*5000.)))
         r = lif_neuron(self,strain,udyn)
         return Response(self,stim,r)
 
-class Stimulus:
+class Stimulus(object):
 
     def __init__(self,**args):
         self.trace = np.atleast_2d(args.get('trace',np.array([[]])))
@@ -228,21 +239,22 @@ class Stimulus:
     def compute_profile(self):
         new_radius = check_pin_radius(self.location,self.pin_radius)
         if self.pin_radius>new_radius:
-            warnings.warn("Pin radius too big and has been adjusted to %.1f" % new_radius)
+            warnings.warn(
+                "Pin radius too big and has been adjusted to %.1f" % new_radius)
             self.pin_radius = new_radius
 
         self._profile, self._profiledyn = skin_touch_profile(
             self.trace,self.location,self.fs,self.pin_radius)
 
-    def propagate(self,aff,true_dist=False):
+    def propagate(self,aff):
         stat_comp = circ_load_vert_stress(
             self._profile,self.location,self.pin_radius,aff.location,aff.depth)
         dyn_comp = circ_load_dyn_wave(
             self._profiledyn,self.location,self.pin_radius,aff.location,
-                aff.depth,self.fs,true_dist)
+                aff.depth,self.fs,aff.surface)
         return stat_comp, dyn_comp, self.fs
 
-class Response:
+class Response(object):
     def __init__(self,a,s,r):
         if len(a)!=len(r):
             RuntimeError("a and r need to have the same length.")
@@ -265,7 +277,8 @@ class Response:
         elif type(idx) is Afferent:
             return Response(idx,self.stim,self.spikes[self.aff.index(idx)])
         elif type(idx) is AfferentPopulation:
-            return Response(idx,self.stim,[self.spikes[self.aff.index(a)] for a in idx])
+            return Response(idx,self.stim,
+                [self.spikes[self.aff.index(a)] for a in idx])
         else:
             return Response(self.a[idx],self.stim,self.spikes[idx])
 
@@ -274,7 +287,8 @@ class Response:
         return self.stim.duration
 
     def rate(self):
-        return (np.atleast_2d(np.array(list(map(lambda x:x.size, self.spikes))))/self.duration).T
+        return (np.atleast_2d(np.array(list(map(lambda x:x.size, self.spikes)))) \
+            /self.duration).T
 
     def psth(self,bin_width=10):
         bins = np.r_[0:self.duration+bin_width/1000.:bin_width/1000.]

@@ -1,9 +1,8 @@
 import numpy as np
 from scipy import interpolate,signal
-from scipy.sparse.csgraph import dijkstra
 from numba import guvectorize,float64,boolean
 
-from .constants import ihbasis,hand_dist_matrix,hand2pixel
+from .constants import ihbasis
 
 def check_pin_radius(loc,rad):
     if loc.shape[0]>1:
@@ -129,7 +128,7 @@ def circ_load_vert_stress(P,PLoc,PRad,AffLoc,AffDepth):
 
     return s_z
 
-def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq,true_dist=False):
+def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq,sur):
     # compute shift and decay only once for each unique x,y coord
     if Rloc.shape[0]>1:
         u,ia,ic = np.unique(Rloc,axis=0,return_index=True,return_inverse=True)
@@ -141,12 +140,7 @@ def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq,true_dist=False):
     npin = dynProfile.shape[0]
     nrec = ia.size
 
-    if true_dist:
-        dr = dist_on_hand(Ploc,Rloc[ia,:])
-    else:
-        dx = Ploc[:,0:1] - Rloc[ia,0:1].T    # (npin,nrec)
-        dy = Ploc[:,1:2] - Rloc[ia,1:2].T    # (npin,nrec)
-        dr = np.sqrt(dx**2 + dy**2)
+    dr = sur.distance(Ploc,Rloc[ia,:])
 
     # delay (everything is synchronous under the probe)
     rdel = dr-PRad
@@ -169,28 +163,6 @@ def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq,true_dist=False):
     udyn = udyn / (Rdepth**2)
 
     return udyn
-
-def dist_on_hand(xy_pin,xy_aff):
-
-    lin_idx = np.arange(535*422).reshape(422,535)
-
-    xyp = np.rint(hand2pixel(xy_pin)).astype(np.int64)
-    xyp = lin_idx[xyp[:,0],xyp[:,1]]
-    xya = np.rint(hand2pixel(xy_aff)).astype(np.int64)
-    xya = lin_idx[xya[:,0],xya[:,1]]
-
-    flip = False
-    if xyp.size>xya.size:
-        flip = True
-        xyp,xya = xya,xyp
-
-    D = dijkstra(hand_dist_matrix,directed=False,indices=xyp)
-    D = D[:,xya]
-
-    if flip:
-        D = D.T
-
-    return D
 
 @guvectorize([(float64[:],float64[:],float64[:,:],float64[:],float64[:])],
     '(m),(m),(m,n),()->(n)',nopython=True,target='parallel')

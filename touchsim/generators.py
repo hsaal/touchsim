@@ -1,7 +1,7 @@
 import numpy as np
-from matplotlib import path
 
 from .classes import Afferent,AfferentPopulation,Stimulus
+from .surface import Surface, hand_surface
 from . import constants
 
 def affpop_single_models(**args):
@@ -40,23 +40,15 @@ def affpop_hand(**args):
         affclass = [affclass]
     region = args.pop('region',None)
 
-    idx = constants.region2idx(region)
+    idx = hand_surface.tag2idx(region)
 
-    affpop = AfferentPopulation()
+    affpop = AfferentPopulation(surface=hand_surface)
     for a in affclass:
         for i in idx:
             dens = np.sqrt(constants.density[(a,
-                constants.regionprop_tags[i][2])])/10./constants.pxl_per_mm
-            b = constants.regionprop_boundingbox[i,:]
-            xy = np.mgrid[b[0]:b[0]+b[2]+1./dens:1./dens,b[1]:b[1]+b[3]+1./dens:1./dens]
-            xy = xy.reshape(2,xy.shape[1]*xy.shape[2]).T
-            xy += np.random.randn(xy.shape[0],xy.shape[1])/dens/5.
-            p = path.Path(constants.regionprop_boundary[i].T)
-            ind = p.contains_points(xy);
-            xy = xy[ind,:]
+                hand_surface.tags[i][2])])/10./hand_surface.pxl_per_mm
 
-            xy -= constants.orig
-            xy = np.dot(xy,constants.rot2hand)/constants.pxl_per_mm
+            xy = hand_surface.sample_uniform(i,dens)
             for l in range(xy.shape[0]):
                 affpop.afferents.append(Afferent(a,location=xy[l,:],**args))
     return affpop
