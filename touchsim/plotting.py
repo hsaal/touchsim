@@ -3,9 +3,9 @@ import re
 import numpy as np
 
 from .classes import Afferent,AfferentPopulation,Stimulus,Response
-from .surface import Surface
+from .surface import Surface,hand_surface
 
-def plot(obj=None,**args):
+def plot(obj=hand_surface,**args):
     if type(obj) is AfferentPopulation:
         hvobj = hv.NdOverlay({a:hv.Points(obj.surface.hand2pixel(obj.location[obj.find(a),:]))\
             (style=dict(color=Afferent.affcol[a])) for a in Afferent.affclasses})
