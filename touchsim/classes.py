@@ -275,10 +275,10 @@ class Response(object):
         if type(idx) is int:
             return Response(self.aff[idx],self.stim,self.spikes[idx])
         elif type(idx) is Afferent:
-            return Response(idx,self.stim,self.spikes[self.aff.index(idx)])
+            return Response(idx,self.stim,self.spikes[self.aff.afferents.index(idx)])
         elif type(idx) is AfferentPopulation:
             return Response(idx,self.stim,
-                [self.spikes[self.aff.index(a)] for a in idx])
+                [self.spikes[self.aff.afferents.index(a)] for a in idx])
         else:
             return Response(self.a[idx],self.stim,self.spikes[idx])
 
