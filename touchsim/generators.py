@@ -12,6 +12,26 @@ def affpop_single_models(**args):
             a.afferents.append(Afferent(t,idx=i,**args))
     return a
 
+def affpop_linear(**args):
+    affclass = args.pop('affclass',Afferent.affclasses)
+    dist = args.pop('dist',1.)
+    max_extent = args.pop('max_extent',10.)
+    idx = args.pop('idx',None)
+
+    locs = np.r_[0.:max_extent+dist:dist]
+
+    a = AfferentPopulation()
+
+    for l in np.nditer(locs):
+        if idx is None:
+            a_sub = affpop_single_models(location=np.array([l,0]),**args)
+            a.afferents.extend(a_sub.afferents)
+        else:
+            for t in affclass:
+                a.afferents.append(
+                    Afferent(t,location=np.array([l,0]),idx=idx,**args))
+    return a
+
 def affpop_grid(**args):
     affclass = args.pop('affclass',Afferent.affclasses)
     dist = args.pop('dist',1.)
