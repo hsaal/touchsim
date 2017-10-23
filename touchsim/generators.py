@@ -93,7 +93,8 @@ def stim_sine(**args):
             + np.linspace(0.,2.*np.pi*f*len,int(fs*len)))
 
     apply_ramp(trace,len=ramp_len,fs=fs)
-    apply_pad(trace,len=pad_len,fs=fs)
+    if pad_len>0:
+        trace = apply_pad(trace,len=pad_len,fs=fs)
     trace += pre_indent
 
     return Stimulus(trace=trace,location=loc,fs=fs,pin_radius=pin_radius)
@@ -111,7 +112,8 @@ def stim_ramp(**args):
 
     trace = amp*np.ones(int(fs*len))
     apply_ramp(trace,len=ramp_len,fs=fs,ramp_type=ramp_type)
-    apply_pad(trace,len=pad_len,fs=fs)
+    if pad_len>0:
+        trace = apply_pad(trace,len=pad_len,fs=fs)
     trace += pre_indent
 
     return Stimulus(trace=trace,location=loc,fs=fs,pin_radius=pin_radius)
@@ -170,3 +172,4 @@ def apply_pad(trace,**args):
     if fs is not None:
         len = round(len*fs)
     trace = np.concatenate((np.zeros(len),trace,np.zeros(len)))
+    return trace
