@@ -41,11 +41,15 @@ class Surface(object):
 
     def add_tags(self,tags):
         self.tags = tags
-
+        
     def hand2pixel(self,locs):
+        """ Transforms from hand coordinates to pixel coordinates.
+        """
         return np.dot(locs,self.rot2pixel)*self.pxl_per_mm + self.orig
-
+     
     def pixel2hand(self,locs):
+        """ Transforms from pixel coordinates to hand coordinates.
+        """
         return np.dot((locs-self.orig)/self.pxl_per_mm,self.rot2hand)
 
     def tag2idx(self,tag):
@@ -74,8 +78,10 @@ class Surface(object):
         xy = xy[ind,:]
 
         return self.pixel2hand(xy)
-
+    
     def construct_dist_matrix(self):
+        """ Constructs matrix of distances for units on the hand. Finds the hand path.
+        """
         if self.outline is None:
             self.D = None
             return
@@ -102,7 +108,10 @@ class Surface(object):
 
         self.D = csr_matrix((weights,(nodes[:,0],nodes[:,1])),shape=(hand.size,hand.size))
 
+
     def distance(self,xy_pin,xy_aff):
+        """ Computes the shortest distance between two locations in the hand.
+        """
         if self.D is None:
             dx = xy_pin[:,0:1] - xy_aff[:,0:1].T
             dy = xy_pin[:,1:2] - xy_aff[:,1:2].T
@@ -127,6 +136,7 @@ class Surface(object):
                 D = D.T
 
             return D
+
 
 def bbox(xy):
     return np.hstack((np.min(xy,axis=0),np.max(xy,axis=0)))

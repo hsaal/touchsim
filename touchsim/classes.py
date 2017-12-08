@@ -10,7 +10,8 @@ from . import constants
 from .surface import null_surface
 
 class Afferent(object):
-
+    ''' Creates single afferent object.
+    '''
     affclasses = ['SA1','RA','PC']
     affdepths = constants.affdepths
     affparams = constants.affparams
@@ -25,12 +26,10 @@ class Afferent(object):
         self.delay = args.get('delay',False)
         self.surface = args.get('surface',null_surface)
 
-        # set afferent depth
-        if self.depth is None:
+        if self.depth is None:   # Set afferent depth
             self.depth = Afferent.affdepths.get(self.affclass)
-
-        # set afferent parameters
-        p = Afferent.affparams.get(self.affclass)
+     
+        p = Afferent.affparams.get(self.affclass)      # Set afferent parameters
         if self.idx is None:
             self.idx = random.randint(0,p.shape[0]-1)
         self.parameters = p[self.idx].copy()
@@ -63,8 +62,8 @@ class Afferent(object):
         else:
             RuntimeError("Can only add elements of type Afferent or AfferentPopulation.")
         return self
-
-    def response(self,stim):
+    
+    def response(self,stim):    # Calulates the response of an afferent to a stimulus
         strain, udyn, fs = stim.propagate(self)
         if not isclose(fs,5000.):
             strain = resample(strain,int(round(strain.shape[0]/fs*5000.)))
@@ -72,8 +71,10 @@ class Afferent(object):
         r = lif_neuron(self,strain,udyn)
         return Response(AfferentPopulation(self),stim,r)
 
-class AfferentPopulation(object):
 
+class AfferentPopulation(object):
+    ''' Creates an afferent population object.
+    '''
     def __init__(self,*afferents,**args):
         self.afferents = list(afferents)
 
@@ -107,6 +108,9 @@ class AfferentPopulation(object):
             self.afferents.append(Afferent(**args))
 
     def __str__(self):
+        ''' _str_ creates a string representation of the object,
+        shows the number of each afferent type in the afferent population. 
+        '''
         return 'AfferentPopulation with ' + str(len(self)) + ' afferents: ' +\
                 str(sum(self.find('SA1'))) + ' SA1, ' + str(sum(self.find('RA'))) +\
                  ' RA, ' + str(sum(self.find('PC'))) + ' PC.'
@@ -200,8 +204,10 @@ class AfferentPopulation(object):
         r = lif_neuron(self,strain,udyn)
         return Response(self,stim,r)
 
+# 
 class Stimulus(object):
-
+    ''' Creates a stimulus object.
+    '''
     def __init__(self,**args):
         self.trace = np.atleast_2d(args.get('trace',np.array([[]])))
         self.location = np.atleast_2d(args.get('location',np.array([[0., 0.]])))
@@ -254,7 +260,10 @@ class Stimulus(object):
                 aff.depth,self.fs,aff.surface)
         return stat_comp, dyn_comp, self.fs
 
+
 class Response(object):
+    ''' Creates a response object to stimulus.
+    '''
     def __init__(self,a,s,r):
         if len(a)!=len(r):
             RuntimeError("a and r need to have the same length.")

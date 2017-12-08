@@ -5,6 +5,8 @@ from .surface import Surface, hand_surface
 from . import constants
 
 def affpop_single_models(**args):
+    ''' Returns AfferentPopulation containing all single neuron models. 
+    '''
     affclass = args.pop('affclass',Afferent.affparams.keys())
     a = AfferentPopulation()
     for t in affclass:
@@ -12,7 +14,14 @@ def affpop_single_models(**args):
             a.afferents.append(Afferent(t,idx=i,**args))
     return a
 
+
 def affpop_linear(**args):
+    ''' Generates afferents on a line extending from the origin
+     dist: distance between neighboring afferent locations
+     max_extent: distance of farthest afferent
+     class: afferent class
+     idx: afferent model index
+    '''
     affclass = args.pop('affclass',Afferent.affclasses)
     dist = args.pop('dist',1.)
     max_extent = args.pop('max_extent',10.)
@@ -31,6 +40,7 @@ def affpop_linear(**args):
                 a.afferents.append(
                     Afferent(t,location=np.array([l,0]),idx=idx,**args))
     return a
+
 
 def affpop_grid(**args):
     affclass = args.pop('affclass',Afferent.affclasses)
@@ -54,7 +64,12 @@ def affpop_grid(**args):
                         Afferent(t,location=np.array([l1,l2]),idx=idx,**args))
     return a
 
+
 def affpop_hand(**args):
+    ''' Places receptors on the hand, set region to:
+     'D2' for a full finger, e.g. D2
+     'D2d' for a part, e.g. tip of D2.
+    '''
     affclass = args.pop('affclass',Afferent.affclasses)
     if type(affclass) is not list:
         affclass = [affclass]
@@ -75,6 +90,19 @@ def affpop_hand(**args):
 
 
 def stim_sine(**args):
+    ''' Generates indenting complex sine stimulus
+     freq: vector of frequencies in Hz
+     amp: vector of amplitudes in mm
+     phase: vector of phases in degrees, default: 0
+     len: stimulus duration in s, default: 1
+     loc: stimulus location in mm, default: [0 0]
+     fs: sampling frequency in Hz, default 5000
+     ramp_len: length of on and off ramps in s, default: 0.05
+     ramp_type:
+     pin_radius: radius of probe pin in mm, default: 0.5
+     pre_indent: static indentation throughout trial, default: 0
+     pad_len:
+    '''
     freq = np.array(args.get('freq',200.))
     amp = np.array(args.get('amp',.02*np.ones(freq.shape)))
     phase = np.array(args.get('phase',np.zeros(freq.shape)))
@@ -99,7 +127,19 @@ def stim_sine(**args):
 
     return Stimulus(trace=trace,location=loc,fs=fs,pin_radius=pin_radius)
 
+
 def stim_ramp(**args):
+    ''' Ramp up / hold / ramp down indentation.
+     amp: amplitude in mm, default: 1.
+     ramp_type: 'lin' or 'sine', default 'lin'.
+     len: total duration of stimulus in s, default 1.
+     loc: stimulus location in mm, default [0 0].
+     fs: sampling frequency in Hz, default 5000.
+     ramp_len: duration of on and off ramps in s, default 0.05.
+     pin_radius: probe radius in mm.
+     pre_indent: static indentation throughout trial, default: 0
+     pad_len:
+    '''
     amp = args.get('amp',1.)
     ramp_type = args.get('ramp_type','lin')
     len = args.get('len',1.)
@@ -118,7 +158,14 @@ def stim_ramp(**args):
 
     return Stimulus(trace=trace,location=loc,fs=fs,pin_radius=pin_radius)
 
+
 def stim_indent_shape(shape,trace,**args):
+    ''' Indents object into skin.
+     pin_radius: probe radius in mm.
+     shape: pin positions making up object shape, e.g. shape_letter().
+     offset: indentation offset for each pin, allows complex shapes that are not flat, default: 0.
+     fs: sampling frequency, only necessary if trace is not Stimulus object.
+    '''
     if type(trace) is Stimulus:
         t = trace.trace[0:1]
         if 'fs' not in args:
@@ -133,7 +180,10 @@ def stim_indent_shape(shape,trace,**args):
 
     return Stimulus(trace=np.tile(t,(shape.shape[0],1)),location=shape,**args)
 
+
 def shape_bar(**args):
+    ''' Define bar shape.
+    '''
     width = args.get('width',1.)
     height = args.get('height',.5)
     angle = np.deg2rad(args.get('angle',0.))
@@ -145,7 +195,10 @@ def shape_bar(**args):
     return np.dot(np.array([[np.cos(angle),-np.sin(angle)],
         [np.sin(angle),np.cos(angle)]]),xy.T).T
 
+
 def apply_ramp(trace,**args):
+    ''' Define ramp type.
+    '''
     len = args.get('len',.05)
     fs = args.get('fs',None)
     ramp_type = args.get('ramp_type','lin')
@@ -154,8 +207,7 @@ def apply_ramp(trace,**args):
     if fs is not None:
         len = round(len*fs)
 
-    # apply ramp
-    if ramp_type=='lin':
+    if ramp_type=='lin':    # apply ramp
         trace[:len] *= np.linspace(0,1,len)
         trace[-len:] *= np.linspace(1,0,len)
     elif ramp_type=='sin' or ramp_type=='sine':
