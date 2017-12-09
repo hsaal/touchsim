@@ -1,5 +1,6 @@
 import numpy as np
 import re
+import os.path
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import dijkstra
 from scipy.ndimage.morphology import distance_transform_edt
@@ -142,7 +143,8 @@ def bbox(xy):
     return np.hstack((np.min(xy,axis=0),np.max(xy,axis=0)))
 
 null_surface = Surface()
-hand_surface = Surface(outline=(1-loadmat('../base/GUI/hand')['hand']),
+hand_surface = Surface(outline=(1-loadmat(os.path.dirname(os.path.dirname(__file__))\
+        + '/surfaces/hand')['hand']),
         orig=hand_orig,pxl_per_mm=hand_pxl_per_mm,
         theta=hand_theta)
 hand_surface.add_tags(hand_tags)
