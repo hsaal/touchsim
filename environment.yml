@@ -7,4 +7,4 @@ dependencies:
   - scikit-image
   - numba>=0.34
   - matplotlib
-  - holoviews>=1.8.4
+  - holoviews>=1.8.1
