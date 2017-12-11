@@ -5,9 +5,11 @@ from .surface import Surface, hand_surface
 from . import constants
 
 def affpop_single_models(**args):
-    ''' Returns AfferentPopulation containing all single neuron models. 
+    ''' Returns AfferentPopulation containing all single neuron models.
     '''
     affclass = args.pop('affclass',Afferent.affparams.keys())
+    if type(affclass) is not list:
+        affclass = [affclass]
     a = AfferentPopulation()
     for t in affclass:
         for i in range(Afferent.affparams.get(t).shape[0]):
@@ -19,10 +21,12 @@ def affpop_linear(**args):
     ''' Generates afferents on a line extending from the origin
      dist: distance between neighboring afferent locations
      max_extent: distance of farthest afferent
-     class: afferent class
+     affclass: afferent class
      idx: afferent model index
     '''
     affclass = args.pop('affclass',Afferent.affclasses)
+    if type(affclass) is not list:
+        affclass = [affclass]
     dist = args.pop('dist',1.)
     max_extent = args.pop('max_extent',10.)
     idx = args.pop('idx',None)
@@ -44,6 +48,8 @@ def affpop_linear(**args):
 
 def affpop_grid(**args):
     affclass = args.pop('affclass',Afferent.affclasses)
+    if type(affclass) is not list:
+        affclass = [affclass]
     dist = args.pop('dist',1.)
     max_extent = args.pop('max_extent',10.)
     idx = args.pop('idx',None)
@@ -90,18 +96,18 @@ def affpop_hand(**args):
 
 
 def stim_sine(**args):
-    ''' Generates indenting complex sine stimulus
-     freq: vector of frequencies in Hz
-     amp: vector of amplitudes in mm
+    ''' Generates indenting complex sine stimulus.
+     freq: vector of frequencies in Hz, default: 200
+     amp: vector of amplitudes in mm, default: 0.02
      phase: vector of phases in degrees, default: 0
      len: stimulus duration in s, default: 1
-     loc: stimulus location in mm, default: [0 0]
+     loc: stimulus location in mm, default: [0, 0]
      fs: sampling frequency in Hz, default 5000
      ramp_len: length of on and off ramps in s, default: 0.05
-     ramp_type:
+     ramp_type: 'sin' sinusoidal or 'lin (linear)' ramp, default: 'lin'
      pin_radius: radius of probe pin in mm, default: 0.5
      pre_indent: static indentation throughout trial, default: 0
-     pad_len:
+     pad_len: duration of stimulus zero-padding, default: 0
     '''
     freq = np.array(args.get('freq',200.))
     amp = np.array(args.get('amp',.02*np.ones(freq.shape)))
@@ -131,14 +137,14 @@ def stim_sine(**args):
 def stim_ramp(**args):
     ''' Ramp up / hold / ramp down indentation.
      amp: amplitude in mm, default: 1.
-     ramp_type: 'lin' or 'sine', default 'lin'.
+     ramp_type: 'lin' or 'sin', default 'lin'.
      len: total duration of stimulus in s, default 1.
-     loc: stimulus location in mm, default [0 0].
+     loc: stimulus location in mm, default [0, 0].
      fs: sampling frequency in Hz, default 5000.
      ramp_len: duration of on and off ramps in s, default 0.05.
-     pin_radius: probe radius in mm.
+     pin_radius: probe radius in mm, default: 0.05
      pre_indent: static indentation throughout trial, default: 0
-     pad_len:
+     pad_len: duration of stimulus zero-padding, default: 0
     '''
     amp = args.get('amp',1.)
     ramp_type = args.get('ramp_type','lin')
