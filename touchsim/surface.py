@@ -7,8 +7,8 @@ from scipy.ndimage.morphology import distance_transform_edt
 from scipy.ndimage.morphology import binary_fill_holes,binary_dilation
 from skimage.measure import label, find_contours
 from skimage.morphology import thin
-from skimage.io import imread
 from matplotlib import path
+from scipy.io import loadmat
 
 from .constants import hand_tags,hand_orig,hand_pxl_per_mm,hand_theta
 
@@ -42,12 +42,12 @@ class Surface(object):
 
     def add_tags(self,tags):
         self.tags = tags
-
+        
     def hand2pixel(self,locs):
         """ Transforms from hand coordinates to pixel coordinates.
         """
         return np.dot(locs,self.rot2pixel)*self.pxl_per_mm + self.orig
-
+     
     def pixel2hand(self,locs):
         """ Transforms from pixel coordinates to hand coordinates.
         """
@@ -79,7 +79,7 @@ class Surface(object):
         xy = xy[ind,:]
 
         return self.pixel2hand(xy)
-
+    
     def construct_dist_matrix(self):
         """ Constructs matrix of distances for units on the hand. Finds the hand path.
         """
@@ -143,8 +143,8 @@ def bbox(xy):
     return np.hstack((np.min(xy,axis=0),np.max(xy,axis=0)))
 
 null_surface = Surface()
-hand_surface = Surface(outline=(1-imread(os.path.dirname(os.path.dirname(__file__))\
-        + '/surfaces/hand.tiff')/255.),
+hand_surface = Surface(outline=(1-loadmat(os.path.dirname(os.path.dirname(__file__))\
+        + '/surfaces/hand')['hand']),
         orig=hand_orig,pxl_per_mm=hand_pxl_per_mm,
         theta=hand_theta)
 hand_surface.add_tags(hand_tags)
