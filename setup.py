@@ -15,4 +15,4 @@ setup(name='touchsim',
           'numpy','scipy','numba','matplotlib','holoviews','scikit-image'
       ],
       zip_safe=False,
-      data_files=[('surfaces',['surfaces/hand.mat'])])
+      data_files=[('surfaces',['surfaces/hand.tiff'])])
