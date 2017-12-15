@@ -6,7 +6,7 @@ from .surface import Surface, hand_surface
 def affpop_single_models(**args):
     ''' Returns AfferentPopulation containing all single neuron models.
     '''
-    affclass = args.pop('affclass',Afferent.affparams.keys())
+    affclass = args.pop('affclass',Afferent.affclasses)
     if type(affclass) is not list:
         affclass = [affclass]
     a = AfferentPopulation()
