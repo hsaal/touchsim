@@ -2,7 +2,6 @@ import numpy as np
 
 from .classes import Afferent,AfferentPopulation,Stimulus
 from .surface import Surface, hand_surface
-from . import constants
 
 def affpop_single_models(**args):
     ''' Returns AfferentPopulation containing all single neuron models.
@@ -76,24 +75,32 @@ def affpop_hand(**args):
      'D2' for a full finger, e.g. D2
      'D2d' for a part, e.g. tip of D2.
     '''
+    return affpop_surface(surface=hand_surface,**args)
+
+def affpop_surface(**args):
+    ''' Places receptors on a surface, individual regions can be selected by
+        their tag.
+    '''
     affclass = args.pop('affclass',Afferent.affclasses)
+    surface = args.pop('surface',hand_surface)
+    density = args.pop('density',surface.density)
+    density_multiplier = args.pop('density_multiplier',1.)
     if type(affclass) is not list:
         affclass = [affclass]
     region = args.pop('region',None)
 
-    idx = hand_surface.tag2idx(region)
+    idx = surface.tag2idx(region)
 
-    affpop = AfferentPopulation(surface=hand_surface)
+    affpop = AfferentPopulation(surface=surface)
     for a in affclass:
         for i in idx:
-            dens = np.sqrt(constants.density[(a,
-                hand_surface.tags[i][2])])/10./hand_surface.pxl_per_mm
+            dens = np.sqrt(density_multiplier*density[(a,
+                surface.tags[i][2])])/10./surface.pxl_per_mm
 
-            xy = hand_surface.sample_uniform(i,dens)
+            xy = surface.sample_uniform(i,dens)
             for l in range(xy.shape[0]):
                 affpop.afferents.append(Afferent(a,location=xy[l,:],**args))
     return affpop
-
 
 def stim_sine(**args):
     ''' Generates indenting complex sine stimulus.

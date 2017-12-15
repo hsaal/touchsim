@@ -10,7 +10,7 @@ from skimage.morphology import thin
 from matplotlib import path
 from PIL import Image
 
-from .constants import hand_tags,hand_orig,hand_pxl_per_mm,hand_theta
+from .constants import hand_tags,hand_orig,hand_pxl_per_mm,hand_theta,hand_density
 
 class Surface(object):
 
@@ -22,11 +22,11 @@ class Surface(object):
             [np.sin(self.theta), np.cos(self.theta)]])
         self.rot2pixel = np.array([[np.cos(-self.theta), -np.sin(-self.theta)],
             [np.sin(-self.theta), np.cos(-self.theta)]])
-        self.tags = args.get('tags',None)
 
         self.outline = args.get('outline',None)
         if self.outline is None:
             self.label = None
+            self.num_reg = 1
         else:
             if args.get('preproc',True):
                 self.outline = np.int64(thin(self.outline))
@@ -38,9 +38,8 @@ class Surface(object):
                     self.boundary.append(xy[0][:,::-1])
 
         self.construct_dist_matrix()
-
-    def add_tags(self,tags):
-        self.tags = tags
+        self.tags = args.get('tags',[('','','') for i in range(self.num_reg-1)])
+        self.density = args.get('density',{('SA1',''):10.,('RA',''):10., ('PC',''):10.})
 
     def hand2pixel(self,locs):
         """ Transforms from hand coordinates to pixel coordinates.
@@ -146,5 +145,4 @@ hand_surface = Surface(outline=(1-np.mean(np.array(\
         Image.open((os.path.dirname(os.path.dirname(__file__))\
         + '/surfaces/hand.tiff'))),axis=2)//255),
         orig=hand_orig,pxl_per_mm=hand_pxl_per_mm,
-        theta=hand_theta)
-hand_surface.add_tags(hand_tags)
+        theta=hand_theta,density=hand_density,tags=hand_tags)
