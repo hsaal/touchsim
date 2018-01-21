@@ -26,19 +26,20 @@ class Surface(object):
         self.outline = args.get('outline',None)
         if self.outline is None:
             self.label = None
-            self.num_reg = 1
+            self.num = 0
         else:
             if args.get('preproc',True):
                 self.outline = np.int64(thin(self.outline))
-                self.label,self.num_reg = label(self.outline,connectivity=1,background=1,return_num=True)
+                self.label,self.num = label(self.outline,connectivity=1,background=1,return_num=True)
+                self.num -= 1
                 self.boundary = []
-                for i in range(self.num_reg-1):
+                for i in range(self.num):
                     dd = distance_transform_edt(np.flipud(self.label==(i+2)))
                     xy = find_contours(dd,1)
                     self.boundary.append(xy[0][:,::-1])
 
         self.construct_dist_matrix()
-        self.tags = args.get('tags',[('','','') for i in range(self.num_reg-1)])
+        self.tags = args.get('tags',[('','','') for i in range(self.num)])
         self.density = args.get('density',{('SA1',''):10.,('RA',''):10., ('PC',''):10.})
 
     def hand2pixel(self,locs):
@@ -64,17 +65,26 @@ class Surface(object):
                     [i for i,x in enumerate(self.tags) if x[1]==match[1]])
             return idx
 
-    def sample_uniform(self,idx,dens):
+    def sample_uniform(self,idx,**args):
         if self.outline is None:
             raise RuntimeError("Cannot sample from surface without border.")
 
-        b = bbox(self.boundary[idx])
-        xy = np.mgrid[b[0]:b[2]+1./dens:1./dens,b[1]:b[3]+1./dens:1./dens]
-        xy = xy.reshape(2,xy.shape[1]*xy.shape[2]).T
-        xy += np.random.randn(xy.shape[0],xy.shape[1])/dens/5.
-        p = path.Path(self.boundary[idx])
-        ind = p.contains_points(xy);
-        xy = xy[ind,:]
+        num = args.get('num',None)
+
+        if num is None:
+            dens = args.get('density',10)
+            b = bbox(self.boundary[idx])
+            xy = np.mgrid[b[0]:b[2]+1./dens:1./dens,b[1]:b[3]+1./dens:1./dens]
+            xy = xy.reshape(2,xy.shape[1]*xy.shape[2]).T
+            xy += np.random.randn(xy.shape[0],xy.shape[1])/dens/5.
+            p = path.Path(self.boundary[idx])
+            ind = p.contains_points(xy);
+            xy = xy[ind,:]
+
+        else:
+            xy = np.zeros((num,2))
+            for i in range(num):
+                xy[i] = rejection_sample(self.boundary[idx])
 
         return self.pixel2hand(xy)
 
@@ -109,7 +119,7 @@ class Surface(object):
 
 
     def distance(self,xy_pin,xy_aff):
-        """ Computes the shortest distance between two locations in the hand.
+        """ Computes the shortest distance between two locations on the hand.
         """
         if self.D is None:
             dx = xy_pin[:,0:1] - xy_aff[:,0:1].T
@@ -139,6 +149,16 @@ class Surface(object):
 
 def bbox(xy):
     return np.hstack((np.min(xy,axis=0),np.max(xy,axis=0)))
+
+def rejection_sample(boundary):
+    b = bbox(boundary)
+    p = path.Path(boundary)
+    inside = False
+    while not inside:
+        xy = np.atleast_2d(b[[0,2]]) + np.random.random((1,2))*\
+            (np.atleast_2d(b[[1,3]])-np.atleast_2d(b[[0,2]]))
+        inside = p.contains_point(xy.T)
+    return xy
 
 null_surface = Surface()
 hand_surface = Surface(outline=(1-np.mean(np.array(\

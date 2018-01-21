@@ -97,7 +97,7 @@ def affpop_surface(**args):
             dens = np.sqrt(density_multiplier*density[(a,
                 surface.tags[i][2])])/10./surface.pxl_per_mm
 
-            xy = surface.sample_uniform(i,dens)
+            xy = surface.sample_uniform(i,density=dens)
             for l in range(xy.shape[0]):
                 affpop.afferents.append(Afferent(a,location=xy[l,:],**args))
     return affpop
