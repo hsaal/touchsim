@@ -4,8 +4,15 @@ from .classes import Afferent,AfferentPopulation,Stimulus
 from .surface import Surface, hand_surface
 
 def affpop_single_models(**args):
-    ''' Returns AfferentPopulation containing all single neuron models.
-    '''
+    """Returns AfferentPopulation containing all single neuron models.
+
+    Kwargs:
+        affclass: Single affclass or list, e.g. ['SA1','RA'] (default: all).
+        args: All other kwargs will be passed on to Afferent constructor.
+
+    Returns:
+        AfferentPopulation object.
+    """
     affclass = args.pop('affclass',Afferent.affclasses)
     if type(affclass) is not list:
         affclass = [affclass]
@@ -17,12 +24,19 @@ def affpop_single_models(**args):
 
 
 def affpop_linear(**args):
-    ''' Generates afferents on a line extending from the origin
-     dist: distance between neighboring afferent locations
-     max_extent: distance of farthest afferent
-     affclass: afferent class
-     idx: afferent model index
-    '''
+    """Generates afferents on a line extending from the origin along the 1st axis.
+
+    Kwargs:
+        dist (float): distance between neighboring afferent locations in mm
+            (default 1.).
+        max_extent (float): distance of farthest afferent in mm (default: 10.).
+        affclass (str or list): Single affclass or list (default: ['SA1','RA','PC']).
+        idx (int): Afferent model index; None (default) picks all available.
+        args: All other kwargs will be passed on to Afferent constructor.
+
+    Returns:
+        AfferentPopulation object.
+    """
     affclass = args.pop('affclass',Afferent.affclasses)
     if type(affclass) is not list:
         affclass = [affclass]
@@ -46,6 +60,19 @@ def affpop_linear(**args):
 
 
 def affpop_grid(**args):
+    """Generates afferents on a 2D square grid centred on the origin.
+
+    Kwargs:
+        dist (float): distance between neighboring afferent locations in mm
+            (default 1.).
+        max_extent (float): length of square in mm (default: 10.).
+        affclass (str or list): Single affclass or list (default: ['SA1','RA','PC']).
+        idx (int): Afferent model index; None (default) picks all available.
+        args: All other kwargs will be passed on to Afferent constructor.
+
+    Returns:
+        AfferentPopulation object.
+    """
     affclass = args.pop('affclass',Afferent.affclasses)
     if type(affclass) is not list:
         affclass = [affclass]
@@ -71,16 +98,28 @@ def affpop_grid(**args):
 
 
 def affpop_hand(**args):
-    ''' Places receptors on the hand, set region to:
-     'D2' for a full finger, e.g. D2
-     'D2d' for a part, e.g. tip of D2.
-    '''
+    """Places receptors on the standard hand surface.
+
+    Kwargs:
+        affclass (str or list): Single affclass or list, (default: ['SA1','RA','PC']).
+        region (str): identifies region(s) to populate (default: all), e.g.
+            'D2' for a full finger, e.g. D2
+            'D2d' for a part, e.g. tip of D2.
+        density (dictionary): Mapping from tags to densities
+            (default: hand_surface.density).
+        density_multiplier (float): Allows proportional scaling of densities
+            (default: 1.).
+        args: All other kwargs will be passed on to Afferent constructor.
+
+    Returns:
+        AfferentPopulation object.
+    """
     return affpop_surface(surface=hand_surface,**args)
 
 def affpop_surface(**args):
-    ''' Places receptors on a surface, individual regions can be selected by
-        their tag.
-    '''
+    """Places receptors on a surface. Like affpop_hand(), but for arbitrary
+    surfaces using the surface keyword.
+    """
     affclass = args.pop('affclass',Afferent.affclasses)
     surface = args.pop('surface',hand_surface)
     density = args.pop('density',surface.density)
@@ -103,19 +142,24 @@ def affpop_surface(**args):
     return affpop
 
 def stim_sine(**args):
-    ''' Generates indenting complex sine stimulus.
-     freq: vector of frequencies in Hz, default: 200
-     amp: vector of amplitudes in mm, default: 0.02
-     phase: vector of phases in degrees, default: 0
-     len: stimulus duration in s, default: 1
-     loc: stimulus location in mm, default: [0, 0]
-     fs: sampling frequency in Hz, default 5000
-     ramp_len: length of on and off ramps in s, default: 0.05
-     ramp_type: 'sin' sinusoidal or 'lin (linear)' ramp, default: 'lin'
-     pin_radius: radius of probe pin in mm, default: 0.5
-     pre_indent: static indentation throughout trial, default: 0
-     pad_len: duration of stimulus zero-padding, default: 0
-    '''
+    """Generates indenting complex sine stimulus.
+
+    Kwargs:
+        freq (float or list): vector of frequencies in Hz (default: 200.).
+        amp (float or list): vector of amplitudes in mm (default: 0.02).
+        phase (float or list): vector of phases in degrees (default: 0.).
+        len (float): stimulus duration in s (default: 1.).
+        loc (array): stimulus location in mm (default: [0, 0]).
+        fs (float): sampling frequency in Hz (default 5000.).
+        ramp_len (float): length of on and off ramps in s (default: 0.05).
+        ramp_type (str): 'lin' or 'sin' (default: 'lin').
+        pin_radius (float): radius of probe pin in mm (default: 0.5).
+        pre_indent (float): static indentation throughout trial (default: 0.).
+        pad_len (float): duration of stimulus zero-padding (default: 0.).
+
+    Returns:
+        Stimulus object.
+    """
     freq = np.array(args.get('freq',200.))
     amp = np.array(args.get('amp',.02*np.ones(freq.shape)))
     phase = np.array(args.get('phase',np.zeros(freq.shape)))
@@ -142,17 +186,22 @@ def stim_sine(**args):
 
 
 def stim_ramp(**args):
-    ''' Ramp up / hold / ramp down indentation.
-     amp: amplitude in mm, default: 1.
-     ramp_type: 'lin' or 'sin', default 'lin'.
-     len: total duration of stimulus in s, default 1.
-     loc: stimulus location in mm, default [0, 0].
-     fs: sampling frequency in Hz, default 5000.
-     ramp_len: duration of on and off ramps in s, default 0.05.
-     pin_radius: probe radius in mm, default: 0.05
-     pre_indent: static indentation throughout trial, default: 0
-     pad_len: duration of stimulus zero-padding, default: 0
-    '''
+    """Generates ramp up / hold / ramp down indentation.
+
+    Kwargs:
+        amp (float): amplitude in mm (default: 1.).
+        ramp_type (str): 'lin' or 'sin' (default: 'lin').
+        len (float): total duration of stimulus in s (default: 1.).
+        loc (array): stimulus location in mm (default: [0, 0]).
+        fs (float): sampling frequency in Hz (default: 5000.).
+        ramp_len (float): duration of on and off ramps in s (default 0.05).
+        pin_radius (float): probe radius in mm (default: 0.05).
+        pre_indent (float): static indentation throughout trial (default: 0.).
+        pad_len (float): duration of stimulus zero-padding (default: 0.).
+
+    Returns:
+        Stimulus object.
+    """
     amp = args.get('amp',1.)
     ramp_type = args.get('ramp_type','lin')
     len = args.get('len',1.)
@@ -173,12 +222,19 @@ def stim_ramp(**args):
 
 
 def stim_indent_shape(shape,trace,**args):
-    ''' Indents object into skin.
-     pin_radius: probe radius in mm.
-     shape: pin positions making up object shape, e.g. shape_letter().
-     offset: indentation offset for each pin, allows complex shapes that are not flat, default: 0.
-     fs: sampling frequency, only necessary if trace is not Stimulus object.
-    '''
+    """Applies indentation trace to several pins that make up a shape.
+
+    Args:
+        shape (2D array): pin positions making up object shape, e.g. shape_bar().
+        trace (array or Stimulus):
+
+    Kwargs:
+        pin_radius (float): probe radius in mm.
+        fs (float): sampling frequency.
+
+    Returns:
+        Stimulus object.
+     """
     if type(trace) is Stimulus:
         t = trace.trace[0:1]
         if 'fs' not in args:
@@ -189,14 +245,23 @@ def stim_indent_shape(shape,trace,**args):
         t = np.reshape(np.atleast_2d(trace),(1,-1))
 
     if 'offset' in args:
-        shape += np.tile(args.pop('offset'),shape.shape)
+        shape += np.tile(args.pop('offset'),shape.shape) #correct?
 
     return Stimulus(trace=np.tile(t,(shape.shape[0],1)),location=shape,**args)
 
 
 def shape_bar(**args):
-    ''' Define bar shape.
-    '''
+    """Generates pin locations for a bar shape.
+
+    Kwargs:
+        width (float): bar width in mm (default: 1.).
+        height (float): bar height in mm (default: 0.5).
+        angle: bar angle in degrees (default: 0.).
+        pins_per_mm (int): Pins per mm (default: 10).
+
+    Returns:
+        2D array of pin locations.
+    """
     width = args.get('width',1.)
     height = args.get('height',.5)
     angle = np.deg2rad(args.get('angle',0.))
@@ -210,8 +275,20 @@ def shape_bar(**args):
 
 
 def apply_ramp(trace,**args):
-    ''' Define ramp type.
-    '''
+    """Applies on/off ramps to stimulus indentation trace.
+
+    Args:
+        trace (array): Indentation trace.
+
+    Kwargs:
+        len (float): length of on/off ramp in s or number of samples (if fs
+            not set) (default: 0.05).
+        fs (float): sampling frequency (default: None).
+        ramp_type (str): 'lin' for linear, 'sin' for sine (default: 'lin').
+
+    Returns:
+        Nothing, original trace is modified in place.
+    """
     len = args.get('len',.05)
     fs = args.get('fs',None)
     ramp_type = args.get('ramp_type','lin')
@@ -230,6 +307,19 @@ def apply_ramp(trace,**args):
         raise RuntimeError("ramp_type must be 'lin' or 'sin'")
 
 def apply_pad(trace,**args):
+    """Applies zero-padding to stimulus indentation trace.
+
+    Args:
+        trace (array): Indentation trace.
+
+    Kwargs:
+        len (float): length of on/off ramp in s or number of samples (if fs
+            not set) (default: 0.05).
+        fs (float): sampling frequency (default: None).
+
+    Returns:
+        Padded trace (array).
+    """
     len = args.get('len',.05)
     fs = args.get('fs',None)
     if max(len,0.)==0.:
