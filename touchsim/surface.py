@@ -13,8 +13,25 @@ from PIL import Image
 from .constants import hand_tags,hand_orig,hand_pxl_per_mm,hand_theta,hand_density
 
 class Surface(object):
+    """A class representing a finite surface, which can be subdivided into
+    separate regions, and on which Afferent objects can be placed.
+    """
 
     def __init__(self,**args):
+        """Initializes a Surface object.
+
+        Kwargs:
+            orig (array): Origin of coordinate system in pixel space (default: [0,0]).
+            pxl_per_mm (float): Conversion factor from pixels to millimeters (default: 1.).
+            theta (float): Angle of first axis in pixel space in radians (default: 0.).
+            outline (array): 2D matrix containing outline of surface (and subregions);
+                if set to None (the default), surface will represent infinite sheet.
+            tags (list): List of tuples with 3 strings each, denoting 1) coarse
+                region, 2) sub-region, and 3) density tag (default: all empty strings).
+            density (dict): Mapping between tuples containing 1) string denoting
+                afferent class and 2) string denoting density tag, and float
+                denoting afferent density in cm^2 (default: 10. for each mapping).
+        """
         self.orig = args.get('orig',np.array([0., 0.]))
         self.pxl_per_mm = args.get('pxl_per_mm',1.)
         self.theta = args.get('theta',0.)
@@ -28,31 +45,51 @@ class Surface(object):
             self.label = None
             self.num = 0
         else:
-            if args.get('preproc',True):
-                self.outline = np.int64(thin(self.outline))
-                self.label,self.num = label(self.outline,connectivity=1,background=1,return_num=True)
-                self.num -= 1
-                self.boundary = []
-                for i in range(self.num):
-                    dd = distance_transform_edt(np.flipud(self.label==(i+2)))
-                    xy = find_contours(dd,1)
-                    self.boundary.append(xy[0][:,::-1])
+            self.outline = np.int64(thin(self.outline))
+            self.label,self.num = label(self.outline,connectivity=1,background=1,\
+                return_num=True)
+            self.num -= 1
+            self.boundary = []
+            for i in range(self.num):
+                dd = distance_transform_edt(np.flipud(self.label==(i+2)))
+                xy = find_contours(dd,1)
+                self.boundary.append(xy[0][:,::-1])
 
         self.construct_dist_matrix()
         self.tags = args.get('tags',[('','','') for i in range(self.num)])
         self.density = args.get('density',{('SA1',''):10.,('RA',''):10., ('PC',''):10.})
 
     def hand2pixel(self,locs):
-        """ Transforms from hand coordinates to pixel coordinates.
+        """Transforms from surface coordinates to pixel coordinates.
+
+        Args:
+            locs (array): 2D array of coordinates in surface space.
+
+        Returns:
+            2D array with transformed coordinates in pixel space.
         """
         return np.dot(locs,self.rot2pixel)*self.pxl_per_mm + self.orig
 
     def pixel2hand(self,locs):
-        """ Transforms from pixel coordinates to hand coordinates.
+        """Transforms from pixel coordinates to surface coordinates.
+
+        Args:
+            locs (array): 2D array of coordinates in pixel space.
+
+        Returns:
+            2D array with transformed coordinates in surface space.
         """
         return np.dot((locs-self.orig)/self.pxl_per_mm,self.rot2hand)
 
     def tag2idx(self,tag):
+        """Maps from surface tags to region ID numbers.
+
+        Args:
+            tag (str): Region tag.
+
+        Returns:
+            List of region ID numbers matching specified tag.
+        """
         if self.tags is None:
             raise RuntimeError("No tags set for this surface.")
         if tag is None:
@@ -89,7 +126,9 @@ class Surface(object):
         return self.pixel2hand(xy)
 
     def construct_dist_matrix(self):
-        """ Constructs matrix of distances for units on the hand. Finds the hand path.
+        """Constructs matrix of pair-wise distances between all pixels contained
+        in the surface. This method is executed automatically when the outline
+        variable is set during construction of the Surface object.
         """
         if self.outline is None:
             self.D = None
@@ -118,19 +157,27 @@ class Surface(object):
         self.D = csr_matrix((weights,(nodes[:,0],nodes[:,1])),shape=(hand.size,hand.size))
 
 
-    def distance(self,xy_pin,xy_aff):
-        """ Computes the shortest distance between two locations on the hand.
+    def distance(self,xy1,xy2):
+        """Computes the shortest distance between pairwise locations on the surface.
+
+        Args:
+            xy1 (2D array): Origin location(s) in surface space.
+            xy2 (2D array): Destination location(s) in surface space.
+
+        Returns:
+            2D array containing all pairwise distances between origin and
+            destination locations.
         """
         if self.D is None:
-            dx = xy_pin[:,0:1] - xy_aff[:,0:1].T
-            dy = xy_pin[:,1:2] - xy_aff[:,1:2].T
+            dx = xy1[:,0:1] - xy2[:,0:1].T
+            dy = xy1[:,1:2] - xy2[:,1:2].T
             return np.sqrt(dx**2 + dy**2)
         else:
             lin_idx = np.arange(self.outline.size).reshape(self.outline.T.shape)
 
-            xyp = np.rint(self.hand2pixel(xy_pin)).astype(np.int64)
+            xyp = np.rint(self.hand2pixel(xy1)).astype(np.int64)
             xyp = lin_idx[xyp[:,0],xyp[:,1]]
-            xya = np.rint(self.hand2pixel(xy_aff)).astype(np.int64)
+            xya = np.rint(self.hand2pixel(xy2)).astype(np.int64)
             xya = lin_idx[xya[:,0],xya[:,1]]
 
             flip = False
@@ -148,9 +195,13 @@ class Surface(object):
 
 
 def bbox(xy):
+    """Calculates bounding box for arbitrary boundary.
+    """
     return np.hstack((np.min(xy,axis=0),np.max(xy,axis=0)))
 
 def rejection_sample(boundary):
+    """Samples a single location from within arbitrary boundary.
+    """
     b = bbox(boundary)
     p = path.Path(boundary)
     inside = False
