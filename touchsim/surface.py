@@ -102,18 +102,38 @@ class Surface(object):
                     [i for i,x in enumerate(self.tags) if x[1]==match[1]])
             return idx
 
-    def sample_uniform(self,idx,**args):
+    def sample_uniform(self,id_or_tag,**args):
+        """Samples locations from within specified region.
+
+        Args:
+            id_or_tag (int or str): region ID number or tag identifying a unique
+                region.
+
+        Kwargs:
+            num (int): Number of locations to sample (default: None).
+            density (float): Density of locations to be sampled expressed as
+                locations per cm^2 (default: SA1 density for specified region).
+                This parameter will only be evaluated if num is not given / set to None.
+
+        Returns:
+            2D array of coordinates in surface space.
+        """
         if self.outline is None:
             raise RuntimeError("Cannot sample from surface without border.")
 
-        num = args.get('num',None)
+        if type(id_or_tag) is str:
+            idx = self.tag2idx(tag)[0]
+        else:
+            idx = id_or_tag
 
+        num = args.get('num',None)
         if num is None:
-            dens = args.get('density',10)
+            dens = args.get('density',self.density[('SA1',self.tags[idx][2])])
+            dist = np.sqrt(dens)/10./self.pxl_per_mm
             b = bbox(self.boundary[idx])
-            xy = np.mgrid[b[0]:b[2]+1./dens:1./dens,b[1]:b[3]+1./dens:1./dens]
+            xy = np.mgrid[b[0]:b[2]+1./dist:1./dist,b[1]:b[3]+1./dist:1./dist]
             xy = xy.reshape(2,xy.shape[1]*xy.shape[2]).T
-            xy += np.random.randn(xy.shape[0],xy.shape[1])/dens/5.
+            xy += np.random.randn(xy.shape[0],xy.shape[1])/dist/5.
             p = path.Path(self.boundary[idx])
             ind = p.contains_points(xy);
             xy = xy[ind,:]
