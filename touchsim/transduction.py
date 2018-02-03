@@ -129,18 +129,10 @@ def circ_load_vert_stress(P,PLoc,PRad,AffLoc,AffDepth):
     return s_z
 
 def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq,sur):
-    # compute shift and decay only once for each unique x,y coord
-    if Rloc.shape[0]>1:
-        u,ia,ic = np.unique(Rloc,axis=0,return_index=True,return_inverse=True)
-    else:
-        ia = np.array([0])
-        ic = np.array([0])
-
     nsamp = dynProfile.shape[1]
     npin = dynProfile.shape[0]
-    nrec = ia.size
 
-    dr = sur.distance(Ploc,Rloc[ia,:])
+    dr = sur.distance(Ploc,Rloc)
 
     # delay (everything is synchronous under the probe)
     rdel = dr-PRad
@@ -154,10 +146,7 @@ def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq,sur):
     decay[dr<=PRad] = 1./2./PRad
 
     udyn = add_delays(delay.T,decay.T,dynProfile,sfreq)
-
     udyn = udyn.T
-    # copy results to all receptors at the same place
-    udyn = udyn[:,ic]
 
     # z decay is 1/z^2
     udyn = udyn / (Rdepth**2)
@@ -168,7 +157,7 @@ def circ_load_dyn_wave(dynProfile,Ploc,PRad,Rloc,Rdepth,sfreq,sur):
     '(m),(m),(m,n),()->(n)',nopython=True,target='parallel')
 def add_delays(delay,decay,dynProfile,sfreq,udyn):
     for i in range(udyn.shape[0]):
-        udyn[i] = 0;
+        udyn[i] = 0
     for jj in range(dynProfile.shape[0]):
         delay_idx = int(np.rint(delay[jj]*sfreq[0]))
         if delay_idx>0:
