@@ -193,7 +193,8 @@ def lif_neuron(aff,stimi,dstimi):
         return_index=True,return_inverse=True)
     for i in range(uq.shape[0]):
         bfilt,afilt = signal.butter(3,p[ia[i],0]*4./1000.)
-        stimi[ic==i] = signal.lfilter(bfilt,afilt,stimi[ic==i],axis=1)
+        if uq[i,0]==0:
+            stimi[ic==i] = signal.lfilter(bfilt,afilt,stimi[ic==i],axis=1)
         dstimi[ic==i] = signal.lfilter(bfilt,afilt,dstimi[ic==i],axis=1)
 
     Iinj = weight_inputs(p,stimi,dstimi)
