@@ -24,8 +24,14 @@ class Surface(object):
             orig (array): Origin of coordinate system in pixel space (default: [0,0]).
             pxl_per_mm (float): Conversion factor from pixels to millimeters (default: 1.).
             theta (float): Angle of first axis in pixel space in radians (default: 0.).
+            filename (string): Filename (with optional path) to an image file
+                containing surface outline (for example: 'surfaces/hand.tiff',
+                default: None).
             outline (array): 2D matrix containing outline of surface (and subregions);
-                if set to None (the default), surface will represent infinite sheet.
+                if set to None (the default), and no image filename is given,
+                surface will represent infinite sheet. This is intended to be used as an
+                alternative to specifying a filename, if an outline is already present
+                in array form.
             tags (list): List of tuples with 3 strings each, denoting 1) coarse
                 region, 2) sub-region, and 3) density tag (default: all empty strings).
             density (dict): Mapping between tuples containing 1) string denoting
@@ -40,7 +46,12 @@ class Surface(object):
         self.rot2pixel = np.array([[np.cos(-self.theta), -np.sin(-self.theta)],
             [np.sin(-self.theta), np.cos(-self.theta)]])
 
-        self.outline = args.get('outline',None)
+        im = args.get('filename',None)
+        if im is None:
+            self.outline = args.get('outline',None)
+        else:
+            self.outline = image2outline(im,args.get('thres',250))
+
         if self.outline is None:
             self.label = None
             self.num = 0
@@ -231,9 +242,15 @@ def rejection_sample(boundary):
         inside = p.contains_point(xy.T)
     return xy
 
+def image2outline(filename,thres=250):
+    """Converts image to greyscale and thresholds to generate binary outline.
+    """
+    im = Image.open(filename)
+    im = im.convert('L',dither=None)
+    outline = np.array(im)<thres
+    return outline
+
 null_surface = Surface()
-hand_surface = Surface(outline=(1-np.mean(np.array(\
-        Image.open((os.path.dirname(os.path.dirname(__file__))\
-        + '/surfaces/hand.tiff'))),axis=2)//255),
-        orig=hand_orig,pxl_per_mm=hand_pxl_per_mm,
+hand_surface = Surface(filename=(os.path.dirname(os.path.dirname(__file__))\
+        + '/surfaces/hand.tiff'),orig=hand_orig,pxl_per_mm=hand_pxl_per_mm,
         theta=hand_theta,density=hand_density,tags=hand_tags)
