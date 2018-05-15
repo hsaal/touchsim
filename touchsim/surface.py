@@ -61,10 +61,12 @@ class Surface(object):
                 return_num=True)
             self.num -= 1
             self.boundary = []
+            self.centers = []
             for i in range(self.num):
                 dd = distance_transform_edt(np.flipud(self.label==(i+2)))
                 xy = find_contours(dd,1)
                 self.boundary.append(xy[0][:,::-1])
+                self.centers.append(np.mean(xy[0][:,::-1],axis=0))
 
         self.construct_dist_matrix()
         self.tags = args.get('tags',[('','','') for i in range(self.num)])

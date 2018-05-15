@@ -57,7 +57,16 @@ def plot(obj=hand_surface,**args):
     elif type(obj) is Surface:
         region = args.get('region',None)
         idx = obj.tag2idx(region)
-        return hv.Path([obj.boundary[i] for i in idx]).opts(
+        labels = args.get('labels',False)
+        coord = args.get('coord',None)
+        hvobj = hv.Path([obj.boundary[i] for i in idx]).opts(
             style=dict(color='k'),plot=dict(yaxis=None,xaxis=None))
-
+        if coord is not None:
+            hvobj *= hv.Curve([obj.hand2pixel((0,0)),obj.hand2pixel((coord,0))]) *\
+                hv.Curve([obj.hand2pixel((0,0)),obj.hand2pixel((0,coord))])
+        if labels:
+            hvobj *= hv.Labels({'x': [obj.centers[i][0] for i in idx],
+                'y': [obj.centers[i][1] for i in idx],
+                'Label': [str(idx[i]) + ' ' + ''.join(obj.tags[i]) for i in idx]})
+        
     return hvobj
