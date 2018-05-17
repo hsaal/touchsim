@@ -144,7 +144,7 @@ class Surface(object):
             dens = args.get('density',self.density[('SA1',self.tags[idx][2])])
             dist = np.sqrt(dens)/10./self.pxl_per_mm
             b = bbox(self.boundary[idx])
-            xy = np.mgrid[b[0]:b[2]+1./dist:1./dist,b[1]:b[3]+1./dist:1./dist]
+            xy = np.mgrid[b[0,0]:b[1,0]+1./dist:1./dist,b[0,1]:b[1,1]+1./dist:1./dist]
             xy = xy.reshape(2,xy.shape[1]*xy.shape[2]).T
             xy += np.random.randn(xy.shape[0],xy.shape[1])/dist/5.
             p = path.Path(self.boundary[idx])
@@ -230,7 +230,7 @@ class Surface(object):
 def bbox(xy):
     """Calculates bounding box for arbitrary boundary.
     """
-    return np.hstack((np.min(xy,axis=0),np.max(xy,axis=0)))
+    return np.vstack((np.min(xy,axis=0),np.max(xy,axis=0)))
 
 def rejection_sample(boundary):
     """Samples a single location from within arbitrary boundary.
@@ -239,8 +239,8 @@ def rejection_sample(boundary):
     p = path.Path(boundary)
     inside = False
     while not inside:
-        xy = np.atleast_2d(b[[0,2]]) + np.random.random((1,2))*\
-            (np.atleast_2d(b[[1,3]])-np.atleast_2d(b[[0,2]]))
+        xy = np.atleast_2d(b[0]) + np.random.random((1,2))*\
+            (np.atleast_2d(b[1])-np.atleast_2d(b[0]))
         inside = p.contains_point(xy.T)
     return xy
 
