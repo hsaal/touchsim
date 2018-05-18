@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import signal
 
 from .classes import Afferent,AfferentPopulation,Stimulus
 from .surface import Surface, hand_surface
@@ -176,6 +177,81 @@ def stim_sine(**args):
             + np.linspace(0.,2.*np.pi*f*len,int(fs*len)))
 
     apply_ramp(trace,len=ramp_len,fs=fs)
+    if pad_len>0:
+        trace = apply_pad(trace,len=pad_len,fs=fs)
+    trace += pre_indent
+
+    return Stimulus(trace=trace,location=loc,fs=fs,pin_radius=pin_radius)
+
+
+def stim_noise(**args):
+    """Generates bandpass Gaussian white noise stimulus.
+
+    Kwargs:
+        freq (list): upper and lower bandpass frequencies in Hz (default: [100.,300.]).
+        amp (float): amplitude (standard deviation of trace) in mm (default: 0.02).
+        len (float): stimulus duration in s (default: 1.).
+        loc (array): stimulus location in mm (default: [0, 0]).
+        fs (float): sampling frequency in Hz (default 5000.).
+        ramp_len (float): length of on and off ramps in s (default: 0.05).
+        ramp_type (str): 'lin' or 'sin' (default: 'lin').
+        pin_radius (float): radius of probe pin in mm (default: 0.5).
+        pre_indent (float): static indentation throughout trial (default: 0.).
+        pad_len (float): duration of stimulus zero-padding (default: 0.).
+
+    Returns:
+        Stimulus object.
+    """
+    freq = args.get('freq',[100.,300.])
+    amp = args.get('amp',.02)
+    len = args.get('len',1.)
+    loc = np.array(args.get('loc',np.array([0.,0.])))
+    fs = args.get('fs',5000.)
+    ramp_len = args.get('ramp_len',.05)
+    ramp_type = args.get('ramp_type','lin')
+    pin_radius = args.get('pin_radius',.5)
+    pre_indent = args.get('pre_indent',0.)
+    pad_len = args.get('pad_len',0.)
+
+    trace = np.random.randn(int(fs*len))
+
+    bfilt,afilt = signal.butter(3,np.array(freq)/fs/2.,btype='bandpass')
+    trace = signal.lfilter(bfilt,afilt,trace)
+
+    apply_ramp(trace,len=ramp_len,fs=fs)
+    if pad_len>0:
+        trace = apply_pad(trace,len=pad_len,fs=fs)
+    trace += pre_indent
+
+    return Stimulus(trace=trace,location=loc,fs=fs,pin_radius=pin_radius)
+
+
+def stim_impulse(**args):
+    """Generates a short impulse to the skin.
+
+    Kwargs:
+        amp (float): amplitude of the pulse in mm (default: 0.03).
+        len (float): pulse duration in s (default: 0.01).
+        pad_len (float): duration of stimulus zero-padding (default: 0.045).
+        loc (array): stimulus location in mm (default: [0, 0]).
+        fs (float): sampling frequency in Hz (default 5000.).
+        pin_radius (float): radius of probe pin in mm (default: 0.5).
+        pre_indent (float): static indentation throughout trial (default: 0.).
+
+    Returns:
+        Stimulus object.
+    """
+    amp = args.get('amp',.03)
+    len = args.get('len',0.01)
+    loc = np.array(args.get('loc',np.array([0.,0.])))
+    fs = args.get('fs',5000.)
+    pin_radius = args.get('pin_radius',.5)
+    pre_indent = args.get('pre_indent',0.)
+    pad_len = args.get('pad_len',0.025)
+
+    trace = signal.gaussian(int(fs*len),std=7) *\
+        np.sin(np.linspace(-np.pi,np.pi,int(fs*len)))
+
     if pad_len>0:
         trace = apply_pad(trace,len=pad_len,fs=fs)
     trace += pre_indent
