@@ -15,11 +15,29 @@ def plot(obj=hand_surface,**args):
         hvobj = hv.NdOverlay(points)
 
     elif type(obj) is Stimulus:
-        grid = args.get('grid',False)
-        d = {i:hv.Curve((obj.time,obj.trace[i]))
-             for i in range(obj.trace.shape[0])}
-        if grid:
-            hvobj = hv.NdLayout(d)
+        spatial = args.get('spatial',False)
+        if not spatial:
+            bin = args.get('bin',float('Inf'))
+            grid = args.get('grid',False)
+            if np.isinf(bin):
+                num = 0
+            else:
+                bins = np.r_[0:obj.duration+bin/1000.:bin/1000.]
+                num = bins.size-1
+
+            hm = dict()
+            tmin = np.min(obj.trace)
+            tmax = np.max(obj.trace)
+            for t in range(num):
+                d = {i:hv.Curve((obj.time,obj.trace[i]))*\
+                    hv.Curve([(bins[t+1],tmin),(bins[t+1],tmax)])
+                    for i in range(obj.trace.shape[0])}
+                if grid:
+                    hvobj = hv.NdLayout(d)
+                else:
+                    hvobj = hv.NdOverlay(d)
+                hm[t] = hvobj
+            hvobj = hv.HoloMap(hm)
         else:
             hvobj = hv.NdOverlay(d)
 
