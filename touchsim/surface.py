@@ -127,12 +127,15 @@ class Surface(object):
             density (float): Density of locations to be sampled expressed as
                 locations per cm^2 (default: SA1 density for specified region).
                 This parameter will only be evaluated if num is not given / set to None.
+            seed (int): Random number seed
 
         Returns:
             2D array of coordinates in surface space.
         """
         if self.outline is None:
             raise RuntimeError("Cannot sample from surface without border.")
+
+        seed = args.get('seed',None)
 
         if type(id_or_tag) is str:
             idx = self.tag2idx(tag)[0]
@@ -141,6 +144,8 @@ class Surface(object):
 
         num = args.get('num',None)
         if num is None:
+            if seed is not None:
+                np.random.seed(seed)
             dens = args.get('density',self.density[('SA1',self.tags[idx][2])])
             dist = np.sqrt(dens)/10./self.pxl_per_mm
             b = bbox(self.boundary[idx])
@@ -232,9 +237,11 @@ def bbox(xy):
     """
     return np.vstack((np.min(xy,axis=0),np.max(xy,axis=0)))
 
-def rejection_sample(boundary):
+def rejection_sample(boundary,seed=None):
     """Samples a single location from within arbitrary boundary.
     """
+    if seed is not None:
+        np.random.seed(seed)
     b = bbox(boundary)
     p = path.Path(boundary)
     inside = False

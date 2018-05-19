@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import signal
+import random
 
 from .classes import Afferent,AfferentPopulation,Stimulus
 from .surface import Surface, hand_surface
@@ -128,6 +129,10 @@ def affpop_surface(**args):
     if type(affclass) is not list:
         affclass = [affclass]
     region = args.pop('region',None)
+    seed = args.pop('seed',None)
+
+    if seed is not None:
+        random.seed(seed)
 
     idx = surface.tag2idx(region)
 
@@ -135,7 +140,7 @@ def affpop_surface(**args):
     for a in affclass:
         for i in idx:
             dens = density_multiplier*density[(a,surface.tags[i][2])]
-            xy = surface.sample_uniform(i,density=dens)
+            xy = surface.sample_uniform(i,density=dens,seed=seed)
             for l in range(xy.shape[0]):
                 affpop.afferents.append(Afferent(a,location=xy[l,:],**args))
     return affpop
