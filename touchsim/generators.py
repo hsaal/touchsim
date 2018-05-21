@@ -256,6 +256,7 @@ def stim_impulse(**args):
 
     trace = signal.gaussian(int(fs*len),std=7) *\
         np.sin(np.linspace(-np.pi,np.pi,int(fs*len)))
+    trace = trace/np.max(trace)*amp
 
     if pad_len>0:
         trace = apply_pad(trace,len=pad_len,fs=fs)
