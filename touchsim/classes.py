@@ -37,6 +37,10 @@ class Afferent(object):
         if not self.delay:
             self.parameters[12] = 0.;
 
+    def __str__(self):
+        return 'Afferent of class ' + str(self.affclass) + ' (model id:  ' +\
+            str(self.gid) + ')'
+
     def __len__(self):
         return 1
 
@@ -288,6 +292,37 @@ class Stimulus(object):
         self.trace = np.concatenate([self.trace,other.trace])
         self.location = np.concatenate([self.location,other.location])
         self.compute_profile()
+        return self
+
+    def __imul__(self,other):
+        if type(other) is not Stimulus:
+            raise RuntimeError("Can only add objects of type Stimulus.")
+        if self.pin_radius!=other.pin_radius:
+            warnings.warn("Overwriting pin_radius of second Stimulus object!")
+        if self.fs!=other.fs:
+            raise RuntimeError("Sampling frequencies must be the same.")
+
+        if np.array_equal(self.location,other.location):
+            self.trace = np.concatenate([self.trace,other.trace],axis=1)
+            self._profile = np.concatenate([self.profile,other.profile],axis=1)
+            self._profiledyn = np.concatenate([self.profiledyn,other.profiledyn],axis=1)
+        else:
+            self.trace = np.concatenate([np.concatenate(
+                [self.trace,np.zeros((other.trace.shape[0],self.trace.shape[1]))]),
+                np.concatenate(
+                [np.zeros((self.trace.shape[0],other.trace.shape[1])),other.trace])],
+                axis=1)
+            self.location = np.concatenate([self.location,other.location])
+            self._profile = np.concatenate([np.concatenate(
+                [self._profile,np.zeros((other._profile.shape[0],self._profile.shape[1]))]),
+                np.concatenate(
+                [np.zeros((self._profile.shape[0],other._profile.shape[1])),other._profile])],
+                axis=1)
+            self._profiledyn = np.concatenate([np.concatenate(
+                [self._profiledyn,np.zeros((other._profiledyn.shape[0],self._profiledyn.shape[1]))]),
+                np.concatenate(
+                [np.zeros((self._profiledyn.shape[0],other._profiledyn.shape[1])),other._profiledyn])],
+                axis=1)
         return self
 
     def compute_profile(self):
