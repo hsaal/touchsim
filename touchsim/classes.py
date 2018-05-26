@@ -28,7 +28,7 @@ class Afferent(object):
 
         if self.depth is None:   # Set afferent depth
             self.depth = Afferent.affdepths.get(self.affclass)
-     
+
         p = Afferent.affparams.get(self.affclass)      # Set afferent parameters
         if self.idx is None:
             self.idx = random.randint(0,p.shape[0]-1)
@@ -39,6 +39,31 @@ class Afferent(object):
 
     def __len__(self):
         return 1
+
+    def __getitem__(self,idx):
+        if idx is True or idx==0 or idx==self.affclass or \
+            (type(idx) is (list or np.array) and len(idx)>0 and\
+            (idx[0] is True or idx[0]==0 or idx[0]==self.affclass)):
+
+            return AfferentPopulation(self)
+        else:
+            return AfferentPopulation()
+
+        if type(idx) is int:
+            return self.afferents[idx]
+        elif type(idx) is slice:
+            return AfferentPopulation(*self.afferents[idx])
+        elif type(idx) is (list or np.array) and len(idx)>0:
+            if type(idx[0]) is bool:
+                idx, = np.nonzero(idx)
+            if type(idx) is np.array:
+                idx = idx.tolist()
+            return AfferentPopulation(*[self.afferents[i] for i in idx])
+        elif idx in Afferent.affclasses:
+            return self[self.find(idx)]
+        else:
+            raise TypeError(
+                "Indices must be integers, slices, lists, or affclass.")
 
     @property
     def affclass(self):
@@ -62,13 +87,26 @@ class Afferent(object):
         else:
             RuntimeError("Can only add elements of type Afferent or AfferentPopulation.")
         return self
-    
-    def response(self,stim):    # Calulates the response of an afferent to a stimulus
-        strain, udyn, fs = stim.propagate(self)
-        if not isclose(fs,5000.):
-            strain = resample(strain,int(round(strain.shape[0]/fs*5000.)))
-            udyn = resample(udyn,int(round(udyn.shape[0]/fs*5000.)))
-        r = lif_neuron(self,strain,udyn)
+
+    def find(self,affclass):
+        return [self.affclass==affclass]
+
+    def response(self,stim):
+        assert type(stim) is Stimulus or type(stim[0]) is Stimulus,\
+            "Argument needs to be Stimulus object or an iterable over Stimulus objects."
+
+        try:
+            s_iter = iter(stim)
+        except:
+            stim = [stim]
+            s_iter = iter(stim)
+        r = list()
+        for s in s_iter:
+            strain, udyn, fs = s.propagate(self)
+            if not isclose(fs,5000.):
+                strain = resample(strain,int(round(strain.shape[0]/fs*5000.)))
+                udyn = resample(udyn,int(round(udyn.shape[0]/fs*5000.)))
+            r.append(lif_neuron(self,strain,udyn))
         return Response(AfferentPopulation(self),stim,r)
 
 
@@ -109,9 +147,9 @@ class AfferentPopulation(object):
 
     def __str__(self):
         ''' _str_ creates a string representation of the object,
-        shows the number of each afferent type in the afferent population. 
+        shows the number of each afferent type in the afferent population.
         '''
-        return 'AfferentPopulation with ' + str(len(self)) + ' afferents: ' +\
+        return 'AfferentPopulation with ' + str(len(self)) + ' afferent(s): ' +\
                 str(sum(self.find('SA1'))) + ' SA1, ' + str(sum(self.find('RA'))) +\
                  ' RA, ' + str(sum(self.find('PC'))) + ' PC.'
 
@@ -197,14 +235,24 @@ class AfferentPopulation(object):
         return list(map(lambda x:x.affclass==affclass,self.afferents))
 
     def response(self,stim):
-        strain, udyn, fs = stim.propagate(self)
-        if not isclose(fs,5000.):
-            strain = resample(strain,int(round(strain.shape[0]/fs*5000.)))
-            udyn = resample(udyn,int(round(udyn.shape[0]/fs*5000.)))
-        r = lif_neuron(self,strain,udyn)
+        assert type(stim) is Stimulus or type(stim[0]) is Stimulus,\
+            "Argument needs to be Stimulus object or an iterable over Stimulus objects."
+
+        try:
+            s_iter = iter(stim)
+        except:
+            stim = [stim]
+            s_iter = iter(stim)
+        r = list()
+        for s in s_iter:
+            strain, udyn, fs = s.propagate(self)
+            if not isclose(fs,5000.):
+                strain = resample(strain,int(round(strain.shape[0]/fs*5000.)))
+                udyn = resample(udyn,int(round(udyn.shape[0]/fs*5000.)))
+            r.append(lif_neuron(self,strain,udyn))
         return Response(self,stim,r)
 
-# 
+
 class Stimulus(object):
     ''' Creates a stimulus object.
     '''
@@ -270,15 +318,16 @@ class Response(object):
 
         self.aff = a
         self.stim = s
-        self.spikes = r
+        self._spikes = r
 
     def __str__(self):
         return 'Response consisting of:\n* ' + self.aff.__str__() + '\n* ' +\
-            self.stim.__str__() + '\n* ' + str(np.sum(self.psth(self.duration))) +\
-            ' total spikes.'
+            str(self.__len__()) + ' stimuli with ' + str(self.duration) +\
+            ' s total duration.' +\
+            '\n* ' + str(int(np.sum(self.rate())*self.duration)) + ' total spikes.'
 
     def __len__(self):
-        return len(self.aff)
+        return len(self.stim)
 
     def __getitem__(self,idx):
         if type(idx) is int:
@@ -293,12 +342,36 @@ class Response(object):
 
     @property
     def duration(self):
-        return self.stim.duration
+        d = 0
+        for s in iter(self.stim):
+            d += s.duration
+        return d
 
-    def rate(self):
-        return (np.atleast_2d(np.array(list(map(lambda x:x.size, self.spikes)))) \
-            /self.duration).T
+    @property
+    def durations(self):
+        return [s.duration for s in iter(self.stim)]
 
-    def psth(self,bin_width=10):
-        bins = np.r_[0:self.duration+bin_width/1000.:bin_width/1000.]
+    @property
+    def spikes(self):
+        if len(self)==1:
+            return self._spikes[0]
+        else:
+            sp = [np.array([]) for i in range(len(self._spikes[0]))]
+            cum_dur = 0.
+            for s in range(len(self._spikes)):
+                sp = [np.concatenate((sp[i],self._spikes[s][i]+cum_dur)) for i in range(len(self._spikes[0]))]
+                cum_dur += self.stim[s].duration
+            return sp
+
+    def rate(self,sep=False):
+        r = np.zeros((len(self.aff),len(self)))
+        for i,s in enumerate(self._spikes):
+            r[:,i:i+1] = (np.atleast_2d(np.array(list(map(lambda x:x.size, s)))) \
+                /self.durations[i]).T
+        if not sep:
+            r = np.atleast_2d(np.mean(r,axis=1)).T
+        return r
+
+    def psth(self,bin=10):
+        bins = np.r_[0:self.duration+bin/1000.:bin/1000.]
         return np.array(list(map(lambda x:np.histogram(x,bins=bins)[0],self.spikes)))
