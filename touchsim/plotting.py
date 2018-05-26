@@ -1,7 +1,6 @@
 import holoviews as hv
 import re
 import numpy as np
-import scipy.signal
 
 from .classes import Afferent,AfferentPopulation,Stimulus,Response
 from .surface import Surface,hand_surface
@@ -26,35 +25,41 @@ def plot_afferent_population(obj,**args):
 
 def plot_stimulus(obj,**args):
     spatial = args.get('spatial',False)
-    if not spatial:
-        bin = args.get('bin',float('Inf'))
-        grid = args.get('grid',False)
-        if np.isinf(bin):
-            num = 0
-        else:
-            bins = np.r_[0:obj.duration+bin/1000.:bin/1000.]
-            num = bins.size-1
+    bin = args.get('bin',float('Inf'))
+    if np.isinf(bin):
+        bins = np.array([0,obj.duration])
+        num = 1
+    else:
+        bins = np.r_[0:obj.duration+bin/1000.:bin/1000.]
+        num = bins.size-1
 
+    if not spatial:
+        grid = args.get('grid',False)
         hm = dict()
         tmin = np.min(obj.trace)
         tmax = np.max(obj.trace)
         for t in range(num):
-            d = {i:hv.Curve((obj.time,obj.trace[i]))*\
-                hv.Curve([(bins[t+1],tmin),(bins[t+1],tmax)])
-                for i in range(obj.trace.shape[0])}
+            if num==1:
+                d = {i:hv.Curve((obj.time,obj.trace[i]))\
+                    for i in range(obj.trace.shape[0])}
+            else:
+                d = {i:hv.Curve((obj.time,obj.trace[i]))*\
+                    hv.Curve([(bins[t+1],tmin),(bins[t+1],tmax)])
+                    for i in range(obj.trace.shape[0])}
             if grid:
                 hvobj = hv.NdLayout(d)
             else:
                 hvobj = hv.NdOverlay(d)
             hm[t] = hvobj
-        hvobj = hv.HoloMap(hm)
+        hvobj = hv.HoloMap(hm).collate()
     else:
-        bins = args.get('bins',50)
-        d = scipy.signal.resample(obj.trace,bins,axis=1)
+        mid = (bins[1:] + bins[:-1]) / 2.
+        d = np.array([np.interp(mid,obj.time,obj.trace[i])\
+            for i in range(obj.trace.shape[0])])
         d = d/np.max(d)
 
         hm = dict()
-        for t in range(d.shape[1]):
+        for t in range(num):
             points = dict()
             for i in range(d.shape[0]):
                 p = hv.Points(np.atleast_2d(hand_surface.hand2pixel(obj.location[i])))
