@@ -3,7 +3,7 @@ import re
 import numpy as np
 
 from .classes import Afferent,AfferentPopulation,Stimulus,Response
-from .surface import Surface,hand_surface
+from .surface import Surface2D,hand_surface
 
 def plot(obj=hand_surface,**args):
     if type(obj) is AfferentPopulation:
@@ -12,7 +12,7 @@ def plot(obj=hand_surface,**args):
         return plot_stimulus(obj,**args)
     elif type(obj) is Response:
         return plot_response(obj,**args)
-    elif type(obj) is Surface:
+    elif type(obj) is Surface2D:
         return plot_surface(obj,**args)
 
 def plot_afferent_population(obj,**args):
