@@ -354,6 +354,27 @@ def shape_bar(**args):
         [np.sin(angle),np.cos(angle)]]),xy.T).T
 
 
+def shape_circle(**args):
+    """Generates pin locations for a circle.
+
+    Kwargs:
+        radius: circle radius in mm (default: 2.).
+        pins_per_mm (int): Pins per mm (default: 10).
+
+    Returns:
+        2D array of pin locations.
+    """
+
+    radius = args.get('radius',2.)
+    pins_per_mm = args.get('pins_per_mm',10)
+
+    xy = np.mgrid[-radius:radius:2*radius*pins_per_mm*1j,
+        -radius:radius:2*radius*pins_per_mm*1j]
+    xy = xy.reshape(2,xy.shape[1]*xy.shape[2]).T
+    r = np.hypot(xy[:,0],xy[:,1])
+    return xy[r<=radius]
+
+
 def apply_ramp(trace,**args):
     """Applies on/off ramps to stimulus indentation trace.
 
@@ -385,6 +406,7 @@ def apply_ramp(trace,**args):
         trace[-len:] *= np.cos(np.linspace(0.,np.pi,len))/2.+.5
     else:
         raise RuntimeError("ramp_type must be 'lin' or 'sin'")
+
 
 def apply_pad(trace,**args):
     """Applies zero-padding to stimulus indentation trace.
