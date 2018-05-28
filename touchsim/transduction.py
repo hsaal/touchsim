@@ -95,7 +95,10 @@ def block_solve(S0,D):
         nzi = unz[ii,:]   # non-zeros elements
         ixgrid = np.ix_(lines,nzi)
         nzigrid = np.ix_(nzi,nzi)
-        P[ixgrid] = np.linalg.solve(D[nzigrid],S0[ixgrid].T).T
+        try:
+            P[ixgrid] = np.linalg.solve(D[nzigrid],S0[ixgrid].T).T
+        except:
+            P[ixgrid] = np.linalg.lstsq(D[nzigrid],S0[ixgrid].T)[0].T
     return P
 
 def circ_load_vert_stress(P,PLoc,PRad,AffLoc,AffDepth):
