@@ -56,16 +56,15 @@ def plot_stimulus(obj,**args):
         mid = (bins[1:] + bins[:-1]) / 2.
         d = np.array([np.interp(mid,obj.time,obj.trace[i])\
             for i in range(obj.trace.shape[0])])
-        d = d/np.max(d)
+        d = (d-np.min(d))
+        d = 1 - d/np.max(d)
 
         hm = dict()
         for t in range(num):
-            points = dict()
-            for i in range(d.shape[0]):
-                p = hv.Points(np.atleast_2d(hand_surface.hand2pixel(obj.location[i])))
-                col = (1-d[i,t])*np.array([1.,1.,1.])
-                points[i] = p.opts(style=dict(color=tuple(col.tolist())))
-            hm[t] = hv.NdOverlay(points)
+            p = hv.Points(np.hstack((np.atleast_2d(hand_surface.hand2pixel(\
+                obj.location)),d[:,t:t+1])),vdims=['Depth'])
+            p = p.opts(plot=dict(color_index=2,scaling_factor=4))
+            hm[t] = p
         hvobj = hv.HoloMap(hm)
     return hvobj
 
