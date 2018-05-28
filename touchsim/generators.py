@@ -309,6 +309,7 @@ def stim_indent_shape(shape,trace,**args):
         trace (array or Stimulus):
 
     Kwargs:
+        rectify (bool): Resets negative indentations to zero (default: True)
         pin_radius (float): probe radius in mm.
         fs (float): sampling frequency.
 
@@ -324,10 +325,15 @@ def stim_indent_shape(shape,trace,**args):
     else:
         t = np.reshape(np.atleast_2d(trace),(1,-1))
 
-    if 'offset' in args:
-        shape += np.tile(args.pop('offset'),shape.shape) #correct?
+    t = np.tile(t,(shape.shape[0],1))
 
-    return Stimulus(trace=np.tile(t,(shape.shape[0],1)),location=shape,**args)
+    if shape.shape[1]==3:
+        t += shape[:,2:3]
+
+    if args.pop('rectify',True):
+        t[t<0] = 0
+
+    return Stimulus(trace=t,location=shape[:,0:2],**args)
 
 
 def shape_bar(**args):
@@ -338,9 +344,11 @@ def shape_bar(**args):
         height (float): bar height in mm (default: 0.5).
         angle: bar angle in degrees (default: 0.).
         pins_per_mm (int): Pins per mm (default: 10).
+        center (array): Location of stimulus center (default: [0.,0.]).
+        hdiff (float): depth difference between center and edge (default: 0.).
 
     Returns:
-        2D array of pin locations.
+        3D array of pin locations.
     """
     width = args.get('width',1.)
     height = args.get('height',.5)
@@ -350,19 +358,30 @@ def shape_bar(**args):
     xy = np.mgrid[-width/2.:width/2.:width*pins_per_mm*1j,
         -height/2.:height/2.:height*pins_per_mm*1j]
     xy = xy.reshape(2,xy.shape[1]*xy.shape[2]).T
-    return np.dot(np.array([[np.cos(angle),-np.sin(angle)],
+    xy = np.dot(np.array([[np.cos(angle),-np.sin(angle)],
         [np.sin(angle),np.cos(angle)]]),xy.T).T
+    if 'hdiff' in args:
+        d =  -args.get('hdiff')*(1/width*2*xy[:,0:1])**2
+    else:
+        d = np.zeros((xy.shape[0],1))
+    d -= np.max(d)
+    if 'center' in args:
+        xy = xy + np.array(args.get('center'))
+    xy = np.hstack((xy,d))
+    return xy
 
 
 def shape_circle(**args):
     """Generates pin locations for a circle.
 
     Kwargs:
-        radius: circle radius in mm (default: 2.).
+        radius (float): circle radius in mm (default: 2.).
         pins_per_mm (int): Pins per mm (default: 10).
+        curvature (float): Between 0 (flat) and 1 (sphere) (default: 0.).
+        center (array): Location of stimulus center (default: [0.,0.]).
 
     Returns:
-        2D array of pin locations.
+        3D array of pin locations.
     """
 
     radius = args.get('radius',2.)
@@ -372,7 +391,16 @@ def shape_circle(**args):
         -radius:radius:2*radius*pins_per_mm*1j]
     xy = xy.reshape(2,xy.shape[1]*xy.shape[2]).T
     r = np.hypot(xy[:,0],xy[:,1])
-    return xy[r<=radius]
+    xy = xy[r<=radius]
+    if 'hdiff' in args:
+        r = r[r<=radius]
+        d =  np.atleast_2d(-args.get('hdiff')*(1/radius*r)**2).T
+    else:
+        d = np.zeros((xy.shape[0],1))
+    if 'center' in args:
+        xy = xy + np.array(args.get('center'))
+    xy = np.hstack((xy,d))
+    return xy
 
 
 def apply_ramp(trace,**args):
