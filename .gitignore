@@ -15,6 +15,7 @@
 *.npy
 touchsim/__pycache__/*
 .ipynb_checkpoints/*
+.coverage
 .eggs
 build/*
 dist/*
@@ -22,3 +23,4 @@ touchsim.egg-info/*
 .cache/*
 tests/.cache/*
 .pytest_cache/*
+scratch*.ipynb
