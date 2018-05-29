@@ -14,13 +14,15 @@ def plot(obj=hand_surface,**args):
         return plot_response(obj,**args)
     elif type(obj) is Surface:
         return plot_surface(obj,**args)
+    raise RuntimeError("Plotting of " + str(type(obj)) + " objects not supported.")
 
 def plot_afferent_population(obj,**args):
     points = dict()
     for a in Afferent.affclasses:
         p = hv.Points(
             obj.surface.hand2pixel(obj.location[obj.find(a),:]))
-        points[a] = p.opts(style=dict(color=tuple(Afferent.affcol[a])))
+        points[a] = p.opts(plot=dict(aspect='equal'),
+            style=dict(color=tuple(Afferent.affcol[a])))
     return hv.NdOverlay(points)
 
 def plot_stimulus(obj,**args):
@@ -63,7 +65,7 @@ def plot_stimulus(obj,**args):
         for t in range(num):
             p = hv.Points(np.hstack((np.atleast_2d(hand_surface.hand2pixel(\
                 obj.location)),d[:,t:t+1])),vdims=['Depth'])
-            p = p.opts(plot=dict(color_index=2,scaling_factor=4))
+            p = p.opts(plot=dict(color_index=2,scaling_factor=4,aspect='equal'))
             hm[t] = p
         hvobj = hv.HoloMap(hm)
     return hvobj
@@ -95,7 +97,7 @@ def plot_response(obj,**args):
                     obj.aff.location[obj.aff.find(a),:]),
                     r[obj.aff.find(a),t:t+1]],axis=1),vdims=['Firing rate'])
                 points[a] = p.opts(style=dict(color=tuple(Afferent.affcol[a])),
-                    plot=dict(size_index=2,scaling_factor=2))
+                    plot=dict(size_index=2,scaling_factor=2,aspect='equal'))
             hm[t] = hv.NdOverlay(points)
         hvobj = hv.HoloMap(hm)
     return hvobj
@@ -106,7 +108,7 @@ def plot_surface(obj,**args):
     labels = args.get('labels',False)
     coord = args.get('coord',None)
     hvobj = hv.Path([obj.boundary[i] for i in idx]).opts(
-        style=dict(color='k'),plot=dict(yaxis=None,xaxis=None))
+        style=dict(color='k'),plot=dict(yaxis=None,xaxis=None,aspect='equal'))
     if coord is not None:
         hvobj *= hv.Curve([obj.hand2pixel((0,0)),obj.hand2pixel((coord,0))]) *\
             hv.Curve([obj.hand2pixel((0,0)),obj.hand2pixel((0,coord))])
