@@ -5,7 +5,7 @@ from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import dijkstra
 from scipy.ndimage.morphology import distance_transform_edt
 from scipy.ndimage.morphology import binary_fill_holes,binary_dilation
-from skimage.measure import label, find_contours
+from skimage.measure import label, find_contours, regionprops
 from skimage.morphology import thin
 from matplotlib import path
 from PIL import Image
@@ -53,24 +53,32 @@ class Surface(object):
             self.outline = image2outline(im,args.get('thres',250))
 
         if self.outline is None:
-            self.label = None
             self.num = 0
         else:
             self.outline = np.int64(thin(self.outline))
-            self.label,self.num = label(self.outline,connectivity=1,background=1,\
+            labels,self.num = label(self.outline,connectivity=1,background=1,\
                 return_num=True)
+            regions = regionprops(labels)
             self.num -= 1
             self.boundary = []
             self.centers = []
+            self.area = []
             for i in range(self.num):
-                dd = distance_transform_edt(np.flipud(self.label==(i+2)))
+                dd = distance_transform_edt(np.flipud(labels==(i+2)))
                 xy = find_contours(dd,1)
+                if len(xy)==0:
+                    continue
                 self.boundary.append(xy[0][:,::-1])
                 self.centers.append(np.mean(xy[0][:,::-1],axis=0))
+                self.area.append(regions[i+1].area)
+            self.num = len(self.boundary)
 
         self.construct_dist_matrix()
         self.tags = args.get('tags',[('','','') for i in range(self.num)])
         self.density = args.get('density',{('SA1',''):10.,('RA',''):10., ('PC',''):10.})
+
+    def __str__(self):
+        return 'Surface with ' + str(self.num) + ' regions.'
 
     def hand2pixel(self,locs):
         """Transforms from surface coordinates to pixel coordinates.
