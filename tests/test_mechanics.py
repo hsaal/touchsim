@@ -231,3 +231,14 @@ def test_waveprop_delay_1pin2():
 
     assert np.argmax(dyn_comp.flatten())>=219-delay_slack
     assert np.argmax(dyn_comp.flatten())<=219+delay_slack
+
+def test_stim_ramp():
+    s = ts.stim_ramp(pin_radius=1.,len=0.5)
+
+    assert s.pin_radius == 1.
+    assert s.duration == 0.5
+    assert s.time[0] == 0.
+    assert s.time[-1] == 0.5
+    assert s.location[0,0] == 0.
+    assert s.location[0,1] == 0.
+    assert s.fs == 5000.

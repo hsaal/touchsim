@@ -137,3 +137,41 @@ def test_PC_sine_resample():
     assert r.rate()[0,0]<=246.+rate_slack
     assert r.spikes[0][0]>=0.0042-timing_slack
     assert r.spikes[0][0]<=0.0042+timing_slack
+
+def test_response_multiple1():
+    s = [ts.stim_sine(freq=250.,amp=0.005,fs=1000.)]
+    a = ts.Afferent('PC',idx=0,noisy=False)
+    r = a.response(s)
+
+    assert r.rate()[0,0]>=246.-rate_slack
+    assert r.rate()[0,0]<=246.+rate_slack
+    assert r.spikes[0][0]>=0.0042-timing_slack
+    assert r.spikes[0][0]<=0.0042+timing_slack
+
+def test_response_multiple2():
+    s = [ts.stim_sine(freq=250.,amp=0.005,fs=1000.),
+        ts.stim_sine(freq=250.,amp=0.005,fs=1000.)]
+    a = ts.Afferent('PC',idx=0,noisy=False)
+    r = a.response(s)
+
+    assert r.rate()[0,0]>=246.-rate_slack
+    assert r.rate()[0,0]<=246.+rate_slack
+    assert r.spikes[0][0]>=0.0042-timing_slack
+    assert r.spikes[0][0]<=0.0042+timing_slack
+
+def test_response_multiple3():
+    s = [ts.stim_ramp(pin_radius=1.),
+        ts.stim_sine(freq=250.,amp=0.005,fs=1000.)]
+    a = ts.Afferent('PC',idx=0,noisy=False)
+    r = a.response(s)
+
+    assert r.rate()[0,0]>=124.5-rate_slack
+    assert r.rate()[0,0]<=124.5+rate_slack
+    assert r.rate(sep=True)[0,0]>=3-rate_slack
+    assert r.rate(sep=True)[0,0]<=3+rate_slack
+    assert r.rate(sep=True)[0,1]>=246-rate_slack
+    assert r.rate(sep=True)[0,1]<=246+rate_slack
+    assert r.spikes[0][0]>=0.0004-timing_slack
+    assert r.spikes[0][0]<=0.0004+timing_slack
+    assert r._spikes[1][0][0]>=0.0042-timing_slack
+    assert r._spikes[1][0][0]<=0.0042+timing_slack
