@@ -115,3 +115,9 @@ def plot_surface(obj,**args):
             'y': [obj.centers[i][1] for i in idx],
             'Label': [str(idx[i]) + ' ' + ''.join(obj.tags[i]) for i in idx]})
     return hvobj
+
+def figsave(hvobj,filename,**args):
+    if type(hvobj) is hv.core.spaces.HoloMap:
+        hv.renderer('matplotlib').instance(**args).save(hvobj, filename, fmt='gif')
+    else:
+        hv.renderer('matplotlib').instance(**args).save(hvobj, filename, fmt='png')
