@@ -99,7 +99,7 @@ def plot_response(obj,**args):
                 points[a] = p.opts(style=dict(color=tuple(Afferent.affcol[a])),
                     plot=dict(size_index=2,scaling_factor=2,aspect='equal'))
             hm[t] = hv.NdOverlay(points)
-        hvobj = hv.HoloMap(hm)
+        hvobj = hv.HoloMap(hm,kdims='Time bin [' + str(bin) + ' ms]')
     return hvobj
 
 def plot_surface(obj,**args):
