@@ -83,6 +83,7 @@ def plot_response(obj,**args):
         hvobj = hv.NdOverlay(spikes).opts(plot=dict(yaxis=None))
 
     else:
+        scale = args.get('scale',True)
         bin = args.get('bin',float('Inf'))
         if np.isinf(bin):
             r = obj.rate()
@@ -96,8 +97,11 @@ def plot_response(obj,**args):
                     [obj.aff.surface.hand2pixel(
                     obj.aff.location[obj.aff.find(a),:]),
                     r[obj.aff.find(a),t:t+1]],axis=1),vdims=['Firing rate'])
-                points[a] = p.opts(style=dict(color=tuple(Afferent.affcol[a])),
-                    plot=dict(size_index=2,scaling_factor=2,aspect='equal'))
+                if scale:
+                    points[a] = p.opts(style=dict(color=tuple(Afferent.affcol[a])),
+                        plot=dict(size_index=2,scaling_factor=2,aspect='equal'))
+                else:
+                    points[a] = p.opts(plot=dict(color_index=2,aspect='equal'))
             hm[t] = hv.NdOverlay(points)
         hvobj = hv.HoloMap(hm,kdims='Time bin [' + str(bin) + ' ms]')
     return hvobj
