@@ -53,7 +53,7 @@ def plot_stimulus(obj,**args):
             else:
                 hvobj = hv.NdOverlay(d)
             hm[t] = hvobj
-        hvobj = hv.HoloMap(hm).collate()
+        hvobj = hv.HoloMap(hm,kdims='Time bin [' + str(bin) + ' ms]').collate()
     else:
         mid = (bins[1:] + bins[:-1]) / 2.
         d = np.array([np.interp(mid,obj.time,obj.trace[i])\
@@ -67,7 +67,7 @@ def plot_stimulus(obj,**args):
                 obj.location)),d[:,t:t+1])),vdims=['Depth'])
             p = p.opts(plot=dict(color_index=2,scaling_factor=4,aspect='equal'))
             hm[t] = p
-        hvobj = hv.HoloMap(hm)
+        hvobj = hv.HoloMap(hm,kdims='Time bin [' + str(bin) + ' ms]')
     return hvobj
 
 def plot_response(obj,**args):
