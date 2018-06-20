@@ -70,7 +70,7 @@ class Surface(object):
                     continue
                 self.boundary.append(xy[0][:,::-1])
                 self.centers.append(np.mean(xy[0][:,::-1],axis=0))
-                self.area.append(regions[i+1].area)
+                self.area.append(regions[i+1].area/self.pxl_per_mm**2.)
             self.num = len(self.boundary)
 
         self.construct_dist_matrix()
@@ -114,7 +114,7 @@ class Surface(object):
         if self.tags is None:
             raise RuntimeError("No tags set for this surface.")
         if tag is None:
-            return range(len(self.boundary))
+            return range(self.num)
         else:
             match = re.findall('[dDpPwWmMdDfFtT]\d?',tag)
             idx = [i for i,x in enumerate(self.tags) if x[0]==match[0]]
