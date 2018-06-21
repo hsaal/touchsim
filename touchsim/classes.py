@@ -225,6 +225,9 @@ class Stimulus(object):
         return 'Stimulus with ' + str(self.location.shape[0]) +\
             ' pins and ' + str(self.duration) + ' s total duration.'
 
+    def __len__(self):
+        return self.location.shape[0]
+
     @property
     def duration(self):
         return self.trace.shape[1]/self.fs

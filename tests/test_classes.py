@@ -1,3 +1,4 @@
+import pytest
 import touchsim as ts
 import numpy as np
 
@@ -103,3 +104,25 @@ def test_affpop_iadd():
 
     assert len(a)==4
     assert len(ap)==2
+
+def test_stimulus_iadd():
+    s = ts.stim_ramp(loc=[0.,0.])
+    s2 = ts.stim_ramp(loc=[5.,0.])
+    assert len(s)==1
+
+    s += s2
+
+    s3 = ts.stim_ramp(loc=[10.,0.],pin_radius=2.)
+    with pytest.warns(Warning):
+        s += s3
+    assert len(s)==3
+    assert s.pin_radius==0.5
+    assert s3.pin_radius==2.
+
+    s4 = ts.stim_ramp(loc=[0.,0.])
+    with pytest.raises(Exception):
+        s += s4
+
+    s5 = ts.stim_ramp(loc=[0.,0.],fs=500.)
+    with pytest.raises(Exception):
+        s += s5

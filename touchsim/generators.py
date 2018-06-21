@@ -275,7 +275,7 @@ def stim_ramp(**args):
         loc (array): stimulus location in mm (default: [0, 0]).
         fs (float): sampling frequency in Hz (default: 5000.).
         ramp_len (float): duration of on and off ramps in s (default 0.05).
-        pin_radius (float): probe radius in mm (default: 0.05).
+        pin_radius (float): probe radius in mm (default: 0.5).
         pre_indent (float): static indentation throughout trial (default: 0.).
         pad_len (float): duration of stimulus zero-padding (default: 0.).
 
