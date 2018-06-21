@@ -118,10 +118,10 @@ class AfferentPopulation(object):
             return self.afferents[idx]
         elif type(idx) is slice:
             return AfferentPopulation(*self.afferents[idx])
-        elif type(idx) is (list or np.array) and len(idx)>0:
+        elif (type(idx) is list and len(idx)>0) or (type(idx) is np.ndarray and idx.size>0):
             if type(idx[0]) is bool:
                 idx, = np.nonzero(idx)
-            if type(idx) is np.array:
+            if type(idx) is np.ndarray:
                 idx = idx.tolist()
             return AfferentPopulation(*[self.afferents[i] for i in idx])
         elif idx in Afferent.affclasses:
@@ -132,6 +132,7 @@ class AfferentPopulation(object):
 
     def __add__(self,other):
         a = AfferentPopulation()
+        a.afferents = list(self.afferents)
         if type(other) is Afferent:
             a.afferents.append(other)
         elif type(other) is AfferentPopulation:
