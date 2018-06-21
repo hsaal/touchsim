@@ -55,6 +55,7 @@ def plot_stimulus(obj,**args):
             hm[t] = hvobj
         hvobj = hv.HoloMap(hm,kdims='Time bin [' + str(bin) + ' ms]').collate()
     else:
+        sur = args.get('surface',hand_surface)
         mid = (bins[1:] + bins[:-1]) / 2.
         d = np.array([np.interp(mid,obj.time,obj.trace[i])\
             for i in range(obj.trace.shape[0])])
@@ -62,10 +63,12 @@ def plot_stimulus(obj,**args):
         d = 1 - d/np.max(d)
 
         hm = dict()
+        locs = sur.hand2pixel(obj.location)
+        rad = obj.pin_radius*sur.pxl_per_mm
         for t in range(num):
-            p = hv.Points(np.hstack((np.atleast_2d(hand_surface.hand2pixel(\
-                obj.location)),d[:,t:t+1])),vdims=['Depth'])
-            p = p.opts(plot=dict(color_index=2,scaling_factor=4,aspect='equal'))
+            p = hv.Polygons([{('x','y'):hv.Ellipse(locs[l,0],locs[l,1],2*rad).array(),
+                'z':d[l,t]} for l in range(obj.location.shape[0])],vdims='z').opts(
+                plot=dict(color_index='z',aspect='equal'),style=dict(linewidth=0.))
             hm[t] = p
         hvobj = hv.HoloMap(hm,kdims='Time bin [' + str(bin) + ' ms]')
     return hvobj
