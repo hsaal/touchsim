@@ -6,6 +6,7 @@
 *.orig
 *.avi
 *.gif
+*.png
 *.bin
 *.dig
 *.pyc
