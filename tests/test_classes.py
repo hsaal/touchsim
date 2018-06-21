@@ -65,6 +65,7 @@ def test_affpop_index():
 
     assert len(a[0])==1
     assert len(a[0:1])==1
+    assert len(a[1:3])==2
     assert len(a[:])==17
     assert len(a[[0,1]])==2
     assert len(a[np.array([0,1])])==2
@@ -126,3 +127,16 @@ def test_stimulus_iadd():
     s5 = ts.stim_ramp(loc=[0.,0.],fs=500.)
     with pytest.raises(Exception):
         s += s5
+
+def test_response_index():
+    a = ts.affpop_single_models(noisy=False)
+    s = [ts.stim_ramp(),ts.stim_ramp()]
+    r = a.response(s)
+
+    assert len(r[a[0]])==1
+    assert len(r[a[0]]._spikes[0])==1
+    assert len(r[a[0]]._spikes[1])==1
+    assert len(r[a['PC']])==4
+    assert len(r[a['PC']]._spikes[0])==4
+    assert len(r[a['PC']]._spikes[1])==4
+    assert r[a[1]].rate()==a[1].response(s).rate()

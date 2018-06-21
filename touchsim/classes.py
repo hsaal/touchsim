@@ -274,8 +274,8 @@ class Response(object):
     ''' Creates a response object to stimulus.
     '''
     def __init__(self,a,s,r):
-        if len(a)!=len(r):
-            RuntimeError("a and r need to have the same length.")
+        assert len(s)==len(r)
+        assert len(a)==len(r[0])
 
         self.aff = a
         self.stim = s
@@ -283,23 +283,26 @@ class Response(object):
 
     def __str__(self):
         return 'Response consisting of:\n* ' + self.aff.__str__() + '\n* ' +\
-            str(self.__len__()) + ' stimuli with ' + str(self.duration) +\
+            str(len(self.stim)) + ' stimuli with ' + str(self.duration) +\
             ' s total duration.' +\
             '\n* ' + str(int(np.sum(self.rate())*self.duration)) + ' total spikes.'
 
     def __len__(self):
-        return len(self.stim)
+        return len(self.aff)
 
     def __getitem__(self,idx):
-        if type(idx) is int:
-            return Response(self.aff[idx],self.stim,self.spikes[idx])
-        elif type(idx) is Afferent:
-            return Response(idx,self.stim,self.spikes[self.aff.afferents.index(idx)])
+        if type(idx) is Afferent:
+            a = AfferentPopulation(idx)
+            ii = [self.aff.afferents.index(idx)]
         elif type(idx) is AfferentPopulation:
-            return Response(idx,self.stim,
-                [self.spikes[self.aff.afferents.index(a)] for a in idx])
-        else:
-            return Response(self.a[idx],self.stim,self.spikes[idx])
+            a = idx
+            ii = [self.aff.afferents.index(a) for a in idx]
+
+        r = list()
+        for i in range(len(self.stim)):
+            r_new = [self._spikes[i][iii] for iii in ii]
+            r.append(r_new)
+        return Response(a,self.stim,r)
 
     @property
     def duration(self):
@@ -314,7 +317,7 @@ class Response(object):
 
     @property
     def spikes(self):
-        if len(self)==1:
+        if len(self.stim)==1:
             return self._spikes[0]
         else:
             sp = [np.array([]) for i in range(len(self._spikes[0]))]
@@ -325,7 +328,7 @@ class Response(object):
             return sp
 
     def rate(self,sep=False):
-        r = np.zeros((len(self.aff),len(self)))
+        r = np.zeros((len(self.aff),len(self.stim)))
         for i,s in enumerate(self._spikes):
             r[:,i:i+1] = (np.atleast_2d(np.array(list(map(lambda x:x.size, s)))) \
                 /self.durations[i]).T
