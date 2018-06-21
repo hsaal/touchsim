@@ -40,38 +40,13 @@ class Afferent(object):
     def __len__(self):
         return 1
 
-    def __getitem__(self,idx):
-        if idx is True or idx==0 or idx==self.affclass or \
-            (type(idx) is (list or np.array) and len(idx)>0 and\
-            (idx[0] is True or idx[0]==0 or idx[0]==self.affclass)):
-
-            return AfferentPopulation(self)
-        else:
-            return AfferentPopulation()
-
-        if type(idx) is int:
-            return self.afferents[idx]
-        elif type(idx) is slice:
-            return AfferentPopulation(*self.afferents[idx])
-        elif type(idx) is (list or np.array) and len(idx)>0:
-            if type(idx[0]) is bool:
-                idx, = np.nonzero(idx)
-            if type(idx) is np.array:
-                idx = idx.tolist()
-            return AfferentPopulation(*[self.afferents[i] for i in idx])
-        elif idx in Afferent.affclasses:
-            return self[self.find(idx)]
-        else:
-            raise TypeError(
-                "Indices must be integers, slices, lists, or affclass.")
-
     @property
     def affclass(self):
         return self._affclass
 
     @affclass.setter
     def affclass(self,affclass):
-        if not affclass in Afferent.affdepths.keys():
+        if not affclass in Afferent.affclasses:
             raise IOError("Afferent class must be SA1, RA, or PC")
         self._affclass = affclass
 
@@ -83,31 +58,13 @@ class Afferent(object):
         if type(other) is Afferent:
             return AfferentPopulation(self,other)
         elif type(other) is AfferentPopulation:
-            return other.__add__(self)
+            return AfferentPopulation(self,*other.afferents)
         else:
             RuntimeError("Can only add elements of type Afferent or AfferentPopulation.")
         return self
 
-    def find(self,affclass):
-        return [self.affclass==affclass]
-
     def response(self,stim):
-        assert type(stim) is Stimulus or type(stim[0]) is Stimulus,\
-            "Argument needs to be Stimulus object or an iterable over Stimulus objects."
-
-        try:
-            s_iter = iter(stim)
-        except:
-            stim = [stim]
-            s_iter = iter(stim)
-        r = list()
-        for s in s_iter:
-            strain, udyn, fs = s.propagate(self)
-            if not isclose(fs,5000.):
-                strain = resample(strain,int(round(strain.shape[0]/fs*5000.)))
-                udyn = resample(udyn,int(round(udyn.shape[0]/fs*5000.)))
-            r.append(lif_neuron(self,strain,udyn))
-        return Response(AfferentPopulation(self),stim,r)
+        return AfferentPopulation(self).response(stim)
 
 
 class AfferentPopulation(object):
