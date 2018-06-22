@@ -106,6 +106,17 @@ def test_affpop_iadd():
     assert len(a)==4
     assert len(ap)==2
 
+def test_stimulus_pin_check():
+    with pytest.warns(Warning):
+        s = ts.stim_indent_shape(np.array([[0.,0.],[0.25,0.]]),
+            ts.stim_ramp(pin_radius=0.5))
+    assert s.pin_radius==0.125
+
+    with pytest.warns(Warning):
+        s = ts.stim_indent_shape(np.array([[0.,0.],[0.25,0.],[0.5,0.]]),
+            ts.stim_ramp(pin_radius=0.5))
+    assert s.pin_radius==0.125
+
 def test_stimulus_iadd():
     s = ts.stim_ramp(loc=[0.,0.])
     s2 = ts.stim_ramp(loc=[5.,0.])

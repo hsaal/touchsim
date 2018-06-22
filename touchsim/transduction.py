@@ -11,7 +11,7 @@ def check_pin_radius(loc,rad):
             dy = loc[:,1:2] - loc[:,1:2].T
             dist = np.sqrt(dx**2. + dy**2)
             dist[dist==0] = np.nan
-            return np.amin(dist)/2.
+            return np.nanmin(dist)/2.
         elif loc.shape[0]==2:
             return np.sqrt(np.sum((loc[0]-loc[1])**2))/2.
     else:
