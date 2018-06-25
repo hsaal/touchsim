@@ -1,19 +1,22 @@
 import holoviews as hv
 import re
 import numpy as np
+import warnings
 
 from .classes import Afferent,AfferentPopulation,Stimulus,Response
 from .surface import Surface,hand_surface
 
 def plot(obj=hand_surface,**args):
-    if type(obj) is AfferentPopulation:
-        return plot_afferent_population(obj,**args)
-    elif type(obj) is Stimulus:
-        return plot_stimulus(obj,**args)
-    elif type(obj) is Response:
-        return plot_response(obj,**args)
-    elif type(obj) is Surface:
-        return plot_surface(obj,**args)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        if type(obj) is AfferentPopulation:
+            return plot_afferent_population(obj,**args)
+        elif type(obj) is Stimulus:
+            return plot_stimulus(obj,**args)
+        elif type(obj) is Response:
+            return plot_response(obj,**args)
+        elif type(obj) is Surface:
+            return plot_surface(obj,**args)
     raise RuntimeError("Plotting of " + str(type(obj)) + " objects not supported.")
 
 def plot_afferent_population(obj,**args):
@@ -68,7 +71,8 @@ def plot_stimulus(obj,**args):
         for t in range(num):
             p = hv.Polygons([{('x','y'):hv.Ellipse(locs[l,0],locs[l,1],2*rad).array(),
                 'z':d[l,t]} for l in range(obj.location.shape[0])],vdims='z').opts(
-                plot=dict(color_index='z',aspect='equal'),style=dict(linewidth=0.))
+                plot=dict(color_index='z',aspect='equal'),
+                style=dict(linewidth=0.)).options(cmap='fire')
             hm[t] = p
         hvobj = hv.HoloMap(hm,kdims='Time bin [' + str(bin) + ' ms]')
     return hvobj
@@ -87,24 +91,30 @@ def plot_response(obj,**args):
 
     else:
         scale = args.get('scale',True)
+        scaling_factor = args.get('scaling_factor',2)
         bin = args.get('bin',float('Inf'))
         if np.isinf(bin):
             r = obj.rate()
         else:
-            r = obj.psth(bin)
+            r = np.float64(obj.psth(bin))
         hm = dict()
         for t in range(r.shape[1]):
             points = dict()
             for a in Afferent.affclasses:
+                idx = np.logical_and(obj.aff.find(a),np.logical_not(r[:,t]==0))
+                if np.sum(np.nonzero(idx))==0:
+                    idx[0] = True
                 p = hv.Points(np.concatenate(
                     [obj.aff.surface.hand2pixel(
-                    obj.aff.location[obj.aff.find(a),:]),
-                    r[obj.aff.find(a),t:t+1]],axis=1),vdims=['Firing rate'])
+                    obj.aff.location[idx,:]),
+                    r[idx,t:t+1]],axis=1),vdims=['Firing rate'])
                 if scale:
                     points[a] = p.opts(style=dict(color=tuple(Afferent.affcol[a])),
-                        plot=dict(size_index=2,scaling_factor=2,aspect='equal'))
+                        plot=dict(size_index=2,scaling_factor=scaling_factor,
+                        aspect='equal'))
                 else:
-                    points[a] = p.opts(plot=dict(color_index=2,aspect='equal'))
+                    points[a] = p.opts(plot=dict(color_index=2,aspect='equal')
+                        ).options(cmap='fire_r')
             hm[t] = hv.NdOverlay(points)
         hvobj = hv.HoloMap(hm,kdims='Time bin [' + str(bin) + ' ms]')
     return hvobj
@@ -126,7 +136,5 @@ def plot_surface(obj,**args):
     return hvobj
 
 def figsave(hvobj,filename,**args):
-    if type(hvobj) is hv.core.spaces.HoloMap:
-        hv.renderer('matplotlib').instance(**args).save(hvobj, filename, fmt='gif')
-    else:
-        hv.renderer('matplotlib').instance(**args).save(hvobj, filename, fmt='png')
+    fmt = args.pop('fmt','png')
+    hv.renderer('matplotlib').instance(**args).save(hvobj, filename, fmt=fmt)
