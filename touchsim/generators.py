@@ -5,6 +5,20 @@ import random
 from .classes import Afferent,AfferentPopulation,Stimulus
 from .surface import Surface, hand_surface
 
+default_params ={'dist':1.,
+                 'max_extent':10.,
+                 'affclass':Afferent.affclasses,
+                 'idx':None,
+                 'len':1.,
+                 'loc':np.array([0, 0]),
+                 'fs':5000.,
+                 'ramp_len':0.05,
+                 'ramp_type':'lin',
+                 'pin_radius':0.5,
+                 'pre_indent':0.,
+                 'pad_len':0.,
+                 'pins_per_mm':10}
+
 def affpop_single_models(**args):
     """Returns AfferentPopulation containing all single neuron models.
 
@@ -15,7 +29,7 @@ def affpop_single_models(**args):
     Returns:
         AfferentPopulation object.
     """
-    affclass = args.pop('affclass',Afferent.affclasses)
+    affclass = args.pop('affclass',default_params['affclass'])
     if type(affclass) is not list:
         affclass = [affclass]
     a = AfferentPopulation()
@@ -39,12 +53,12 @@ def affpop_linear(**args):
     Returns:
         AfferentPopulation object.
     """
-    affclass = args.pop('affclass',Afferent.affclasses)
+    affclass = args.pop('affclass',default_params['affclass'])
     if type(affclass) is not list:
         affclass = [affclass]
-    dist = args.pop('dist',1.)
-    max_extent = args.pop('max_extent',10.)
-    idx = args.pop('idx',None)
+    dist = args.pop('dist',default_params['dist'])
+    max_extent = args.pop('max_extent',default_params['max_extent'])
+    idx = args.pop('idx',default_params['idx'])
 
     locs = np.r_[0.:max_extent+dist:dist]
 
@@ -75,12 +89,12 @@ def affpop_grid(**args):
     Returns:
         AfferentPopulation object.
     """
-    affclass = args.pop('affclass',Afferent.affclasses)
+    affclass = args.pop('affclass',default_params['affclass'])
     if type(affclass) is not list:
         affclass = [affclass]
-    dist = args.pop('dist',1.)
-    max_extent = args.pop('max_extent',10.)
-    idx = args.pop('idx',None)
+    dist = args.pop('dist',default_params['dist'])
+    max_extent = args.pop('max_extent',default_params['max_extent'])
+    idx = args.pop('idx',default_params['idx'])
 
     locs = np.r_[-max_extent/2:max_extent/2+dist:dist]
 
@@ -104,9 +118,10 @@ def affpop_hand(**args):
 
     Kwargs:
         affclass (str or list): Single affclass or list, (default: ['SA1','RA','PC']).
-        region (str): identifies region(s) to populate (default: all), e.g.
-            'D2' for a full finger, e.g. D2
-            'D2d' for a part, e.g. tip of D2.
+        region (str): identifies region(s) to populate, with None selecting
+            all regions (default: None), e.g.
+            'D2' for a full finger (digit 2), or
+            'D2d' for a part (tip of digit 2).
         density (dictionary): Mapping from tags to densities
             (default: hand_surface.density).
         density_multiplier (float): Allows proportional scaling of densities
@@ -122,7 +137,7 @@ def affpop_surface(**args):
     """Places receptors on a surface. Like affpop_hand(), but for arbitrary
     surfaces using the surface keyword.
     """
-    affclass = args.pop('affclass',Afferent.affclasses)
+    affclass = args.pop('affclass',default_params['affclass'])
     surface = args.pop('surface',hand_surface)
     density = args.pop('density',surface.density)
     density_multiplier = args.pop('density_multiplier',1.)
@@ -167,23 +182,23 @@ def stim_sine(**args):
     freq = np.array(args.get('freq',200.))
     amp = np.array(args.get('amp',.02*np.ones(freq.shape)))
     phase = np.array(args.get('phase',np.zeros(freq.shape)))
-    len = args.get('len',1.)
-    loc = np.array(args.get('loc',np.array([0.,0.])))
-    fs = args.get('fs',5000.)
-    ramp_len = args.get('ramp_len',.05)
-    ramp_type = args.get('ramp_type','lin')
-    pin_radius = args.get('pin_radius',.5)
-    pre_indent = args.get('pre_indent',0.)
-    pad_len = args.get('pad_len',0.)
+    len = args.get('len',default_params['len'])
+    loc = np.array(args.get('loc',default_params['loc']))
+    fs = args.get('fs',default_params['fs'])
+    ramp_len = args.get('ramp_len',default_params['ramp_len'])
+    ramp_type = args.get('ramp_type',default_params['ramp_type'])
+    pin_radius = args.get('pin_radius',default_params['pin_radius'])
+    pre_indent = args.get('pre_indent',default_params['pre_indent'])
+    pad_len = args.get('pad_len',default_params['pad_len'])
 
     trace = np.zeros(int(fs*len))
     for f,a,p in zip(np.nditer(freq),np.nditer(amp),np.nditer(phase)):
         trace += a*np.sin(p*np.pi/180. \
             + np.linspace(0.,2.*np.pi*f*len,int(fs*len)))
 
-    apply_ramp(trace,len=ramp_len,fs=fs)
+    apply_ramp(trace,ramp_len=ramp_len,fs=fs)
     if pad_len>0:
-        trace = apply_pad(trace,len=pad_len,fs=fs)
+        trace = apply_pad(trace,pad_len=pad_len,fs=fs)
     trace += pre_indent
 
     return Stimulus(trace=trace,location=loc,fs=fs,pin_radius=pin_radius)
@@ -209,23 +224,23 @@ def stim_noise(**args):
     """
     freq = args.get('freq',[100.,300.])
     amp = args.get('amp',.02)
-    len = args.get('len',1.)
-    loc = np.array(args.get('loc',np.array([0.,0.])))
-    fs = args.get('fs',5000.)
-    ramp_len = args.get('ramp_len',.05)
-    ramp_type = args.get('ramp_type','lin')
-    pin_radius = args.get('pin_radius',.5)
-    pre_indent = args.get('pre_indent',0.)
-    pad_len = args.get('pad_len',0.)
+    len = args.get('len',default_params['len'])
+    loc = np.array(args.get('loc',default_params['loc']))
+    fs = args.get('fs',default_params['fs'])
+    ramp_len = args.get('ramp_len',default_params['ramp_len'])
+    ramp_type = args.get('ramp_type',default_params['ramp_type'])
+    pin_radius = args.get('pin_radius',default_params['pin_radius'])
+    pre_indent = args.get('pre_indent',default_params['pre_indent'])
+    pad_len = args.get('pad_len',default_params['pad_len'])
 
     trace = np.random.randn(int(fs*len))
 
     bfilt,afilt = signal.butter(3,np.array(freq)/fs/2.,btype='bandpass')
     trace = signal.lfilter(bfilt,afilt,trace)
 
-    apply_ramp(trace,len=ramp_len,fs=fs)
+    apply_ramp(trace,ramp_len=ramp_len,fs=fs)
     if pad_len>0:
-        trace = apply_pad(trace,len=pad_len,fs=fs)
+        trace = apply_pad(trace,pad_len=pad_len,fs=fs)
     trace += pre_indent
 
     return Stimulus(trace=trace,location=loc,fs=fs,pin_radius=pin_radius)
@@ -248,18 +263,18 @@ def stim_impulse(**args):
     """
     amp = args.get('amp',.03)
     len = args.get('len',0.01)
-    loc = np.array(args.get('loc',np.array([0.,0.])))
-    fs = args.get('fs',5000.)
-    pin_radius = args.get('pin_radius',.5)
-    pre_indent = args.get('pre_indent',0.)
-    pad_len = args.get('pad_len',0.025)
+    loc = np.array(args.get('loc',default_params['loc']))
+    fs = args.get('fs',default_params['fs'])
+    pin_radius = args.get('pin_radius',default_params['pin_radius'])
+    pre_indent = args.get('pre_indent',default_params['pre_indent'])
+    pad_len = args.get('pad_len',default_params['pad_len'])
 
     trace = signal.gaussian(int(fs*len),std=7) *\
         np.sin(np.linspace(-np.pi,np.pi,int(fs*len)))
     trace = trace/np.max(trace)*amp
 
     if pad_len>0:
-        trace = apply_pad(trace,len=pad_len,fs=fs)
+        trace = apply_pad(trace,pad_len=pad_len,fs=fs)
     trace += pre_indent
 
     return Stimulus(trace=trace,location=loc,fs=fs,pin_radius=pin_radius)
@@ -283,19 +298,19 @@ def stim_ramp(**args):
         Stimulus object.
     """
     amp = args.get('amp',1.)
-    ramp_type = args.get('ramp_type','lin')
-    len = args.get('len',1.)
-    loc = np.array(args.get('loc',np.array([0.,0.])))
-    fs = args.get('fs',5000.)
-    ramp_len = args.get('ramp_len',.05)
-    pin_radius = args.get('pin_radius',.5)
-    pre_indent = args.get('pre_indent',0.)
-    pad_len = args.get('pad_len',0.)
+    len = args.get('len',default_params['len'])
+    loc = np.array(args.get('loc',default_params['loc']))
+    fs = args.get('fs',default_params['fs'])
+    ramp_len = args.get('ramp_len',default_params['ramp_len'])
+    ramp_type = args.get('ramp_type',default_params['ramp_type'])
+    pin_radius = args.get('pin_radius',default_params['pin_radius'])
+    pre_indent = args.get('pre_indent',default_params['pre_indent'])
+    pad_len = args.get('pad_len',default_params['pad_len'])
 
     trace = amp*np.ones(int(fs*len))
-    apply_ramp(trace,len=ramp_len,fs=fs,ramp_type=ramp_type)
+    apply_ramp(trace,ramp_len=ramp_len,fs=fs,ramp_type=ramp_type)
     if pad_len>0:
-        trace = apply_pad(trace,len=pad_len,fs=fs)
+        trace = apply_pad(trace,pad_len=pad_len,fs=fs)
     trace += pre_indent
 
     return Stimulus(trace=trace,location=loc,fs=fs,pin_radius=pin_radius)
@@ -353,7 +368,7 @@ def shape_bar(**args):
     width = args.get('width',1.)
     height = args.get('height',.5)
     angle = np.deg2rad(args.get('angle',0.))
-    pins_per_mm = args.get('pins_per_mm',10)
+    pins_per_mm = args.get('pins_per_mm',default_params['pins_per_mm'])
 
     xy = np.mgrid[-width/2.:width/2.:width*pins_per_mm*1j,
         -height/2.:height/2.:height*pins_per_mm*1j]
@@ -385,7 +400,7 @@ def shape_circle(**args):
     """
 
     radius = args.get('radius',2.)
-    pins_per_mm = args.get('pins_per_mm',10)
+    pins_per_mm = args.get('pins_per_mm',default_params['pins_per_mm'])
 
     xy = np.mgrid[-radius:radius:2*radius*pins_per_mm*1j,
         -radius:radius:2*radius*pins_per_mm*1j]
@@ -410,7 +425,7 @@ def apply_ramp(trace,**args):
         trace (array): Indentation trace.
 
     Kwargs:
-        len (float): length of on/off ramp in s or number of samples (if fs
+        ramp_len (float): length of on/off ramp in s or number of samples (if fs
             not set) (default: 0.05).
         fs (float): sampling frequency (default: None).
         ramp_type (str): 'lin' for linear, 'sin' for sine (default: 'lin').
@@ -418,20 +433,20 @@ def apply_ramp(trace,**args):
     Returns:
         Nothing, original trace is modified in place.
     """
-    len = args.get('len',.05)
+    ramp_len = args.get('ramp_len',.05)
     fs = args.get('fs',None)
     ramp_type = args.get('ramp_type','lin')
-    if max(len,0.)==0.:
+    if max(ramp_len,0.)==0.:
         return
     if fs is not None:
-        len = round(len*fs)
+        ramp_len = round(ramp_len*fs)
 
     if ramp_type=='lin':    # apply ramp
-        trace[:len] *= np.linspace(0,1,len)
-        trace[-len:] *= np.linspace(1,0,len)
+        trace[:ramp_len] *= np.linspace(0,1,ramp_len)
+        trace[-ramp_len:] *= np.linspace(1,0,ramp_len)
     elif ramp_type=='sin' or ramp_type=='sine':
-        trace[:len] *= np.cos(np.linspace(np.pi,2.*np.pi,len))/2.+.5
-        trace[-len:] *= np.cos(np.linspace(0.,np.pi,len))/2.+.5
+        trace[:ramp_len] *= np.cos(np.linspace(np.pi,2.*np.pi,ramp_len))/2.+.5
+        trace[-ramp_len:] *= np.cos(np.linspace(0.,np.pi,ramp_len))/2.+.5
     else:
         raise RuntimeError("ramp_type must be 'lin' or 'sin'")
 
@@ -443,18 +458,18 @@ def apply_pad(trace,**args):
         trace (array): Indentation trace.
 
     Kwargs:
-        len (float): length of on/off ramp in s or number of samples (if fs
+        pad_len (float): length of on/off ramp in s or number of samples (if fs
             not set) (default: 0.05).
         fs (float): sampling frequency (default: None).
 
     Returns:
         Padded trace (array).
     """
-    len = args.get('len',.05)
+    pad_len = args.get('pad_len',.05)
     fs = args.get('fs',None)
-    if max(len,0.)==0.:
+    if max(pad_len,0.)==0.:
         return
     if fs is not None:
-        len = round(len*fs)
-    trace = np.concatenate((np.zeros(len),trace,np.zeros(len)))
+        pad_len = round(pad_len*fs)
+    trace = np.concatenate((np.zeros(pad_len),trace,np.zeros(pad_len)))
     return trace
