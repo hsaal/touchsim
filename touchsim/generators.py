@@ -154,7 +154,7 @@ def affpop_surface(**args):
     affpop = AfferentPopulation(surface=surface)
     for a in affclass:
         for i in idx:
-            dens = density_multiplier*density[(a,surface.tags[i][2])]
+            dens = density_multiplier*density[(a,i)]
             xy = surface.sample_uniform(i,density=dens,seed=seed)
             for l in range(xy.shape[0]):
                 affpop.afferents.append(Afferent(a,location=xy[l,:],**args))

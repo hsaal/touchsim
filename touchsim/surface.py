@@ -81,8 +81,20 @@ class Surface(object):
                 self.bbox_max[i] = bb[1]
 
         self.construct_dist_matrix()
-        self.tags = args.get('tags',[('','','') for i in range(self.num)])
+        self.tags = args.get('tags',['' for i in range(self.num)])
         self.density = args.get('density',{('SA1',''):10.,('RA',''):10., ('PC',''):10.})
+
+    @property
+    def density(self):
+        return self._density
+
+    @density.setter
+    def density(self,density):
+        self._density = {}
+        for k in density.keys():
+            idx = self.tag2idx(k[1])
+            for i in idx:
+                self._density[(k[0],i)] = density[k]
 
     def __str__(self):
         return 'Surface with ' + str(self.num) + ' regions.'
@@ -123,11 +135,7 @@ class Surface(object):
         if tag is None:
             return range(self.num)
         else:
-            match = re.findall('[dDpPwWmMdDfFtT]\d?',tag)
-            idx = [i for i,x in enumerate(self.tags) if x[0]==match[0]]
-            if len(match)>1:
-                return list(set(idx).intersection(
-                    [i for i,x in enumerate(self.tags) if x[1]==match[1]]))
+            idx = [i for i in range(self.num) if len(re.findall(tag,self.tags[i]))>0]
             return idx
 
     def sample_uniform(self,id_or_tag,**args):
@@ -161,7 +169,7 @@ class Surface(object):
         if num is None:
             if seed is not None:
                 np.random.seed(seed)
-            dens = args.get('density',self.density[('SA1',self.tags[idx][2])])
+            dens = args.get('density',self.density[('SA1',idx)])
             dist = np.sqrt(dens)/10./self.pxl_per_mm
             b = bbox(self.boundary[idx])
             xy = np.mgrid[b[0,0]:b[1,0]+1./dist:1./dist,b[0,1]:b[1,1]+1./dist:1./dist]
