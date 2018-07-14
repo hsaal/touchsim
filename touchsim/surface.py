@@ -72,6 +72,7 @@ class Surface(object):
                 self.centers.append(np.mean(xy[0][:,::-1],axis=0))
                 self.area.append(regions[i+1].area/self.pxl_per_mm**2.)
             self.num = len(self.boundary)
+            self.area = np.array(self.area)
 
             self.bbox_min = np.zeros((self.num,2))
             self.bbox_max = np.zeros((self.num,2))
