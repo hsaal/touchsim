@@ -129,7 +129,7 @@ def plot_response(obj,**args):
 def plot_surface(obj,**args):
     region = args.get('region',None)
     idx = obj.tag2idx(region)
-    labels = args.get('labels',False)
+    tags = args.get('tags',False)
     coord = args.get('coord',None)
     locator = args.get('locator',False)
 
@@ -145,7 +145,7 @@ def plot_surface(obj,**args):
     if coord is not None:
         hvobj *= hv.Curve([obj.hand2pixel((0,0)),obj.hand2pixel((coord,0))]) *\
             hv.Curve([obj.hand2pixel((0,0)),obj.hand2pixel((0,coord))])
-    if labels:
+    if tags:
         hvobj *= hv.Labels({'x': [obj.centers[i][0] for i in idx],
             'y': [obj.centers[i][1] for i in idx],
             'Label': [str(idx[i]) + ' ' + ''.join(obj.tags[i]) for i in idx]})
