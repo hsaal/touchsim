@@ -8,6 +8,12 @@ from .classes import Afferent,AfferentPopulation,Stimulus,Response
 from .surface import Surface,hand_surface
 
 def plot(obj=hand_surface,**args):
+    """A visual representation of an AfferentPopulation, a Stimulus, a Response,
+    or a Surface object, depending on what type of object the function is called
+    with. The function will then call plot_afferent_population(), plot_stimulus(),
+    plot_response(), or plot_surface() as appropriate.
+    """
+
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         if type(obj) is AfferentPopulation:
