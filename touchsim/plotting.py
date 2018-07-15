@@ -73,7 +73,7 @@ def plot_stimulus(obj,**args):
             p = hv.Polygons([{('x','y'):hv.Ellipse(locs[l,0],locs[l,1],2*rad).array(),
                 'z':d[l,t]} for l in range(obj.location.shape[0])],vdims='z').opts(
                 plot=dict(color_index='z',aspect='equal'),
-                style=dict(linewidth=0.)).options(cmap='fire')
+                style=dict(linewidth=0.,line_width=0.01)).options(cmap='fire')
             hm[t] = p
         hvobj = hv.HoloMap(hm,kdims='Time bin [' + str(bin) + ' ms]')
     return hvobj
@@ -85,7 +85,7 @@ def plot_response(obj,**args):
         spikes = dict()
         for i in range(len(idx)):
             s = hv.Spikes(obj.spikes[idx[i]], kdims=['Time'])
-            spikes[i] = s.opts(plot=dict(position=0.1*i),
+            spikes[i] = s.opts(plot=dict(position=0.1*i,spike_length=0.1),
                 style=dict(color=tuple(
                 Afferent.affcol[obj.aff.afferents[idx[i]].affclass])))
         hvobj = hv.NdOverlay(spikes).opts(plot=dict(yaxis=None))
@@ -130,6 +130,8 @@ def plot_surface(obj,**args):
     amin = np.min(obj.bbox_min[idx],axis=0)
     amax = np.max(obj.bbox_max[idx],axis=0)
     wh = amax-amin
+    if np.min(wh)<250:
+        wh = wh/np.min(wh)*250
     hvobj = hv.Path([obj.boundary[i] for i in idx]).opts(
         style=dict(color='k'),plot=dict(yaxis=None,xaxis=None,aspect='equal',
         width=int(ceil(wh[0])),height=int(ceil(wh[1]))))
