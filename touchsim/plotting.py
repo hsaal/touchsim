@@ -125,6 +125,7 @@ def plot_surface(obj,**args):
     idx = obj.tag2idx(region)
     labels = args.get('labels',False)
     coord = args.get('coord',None)
+    locator = args.get('locator',False)
 
     amin = np.min(obj.bbox_min[idx],axis=0)
     amax = np.max(obj.bbox_max[idx],axis=0)
@@ -140,6 +141,14 @@ def plot_surface(obj,**args):
         hvobj *= hv.Labels({'x': [obj.centers[i][0] for i in idx],
             'y': [obj.centers[i][1] for i in idx],
             'Label': [str(idx[i]) + ' ' + ''.join(obj.tags[i]) for i in idx]})
+
+    # show cursor position in hand coordinates (works only in bokeh)
+    if locator:
+        pointer = hv.streams.PointerXY(x=0,y=0)
+        dm = hv.DynamicMap(lambda x, y: hvobj*hv.Text(x,y+5,
+            '(%d,%d)' % tuple(obj.pixel2hand(np.array([x,y])))),streams=[pointer])
+        return dm
+
     return hvobj
 
 def figsave(hvobj,filename,**args):
