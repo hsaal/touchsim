@@ -126,8 +126,8 @@ class Surface(object):
             match = re.findall('[dDpPwWmMdDfFtT]\d?',tag)
             idx = [i for i,x in enumerate(self.tags) if x[0]==match[0]]
             if len(match)>1:
-                return set(idx).intersection(
-                    [i for i,x in enumerate(self.tags) if x[1]==match[1]])
+                return list(set(idx).intersection(
+                    [i for i,x in enumerate(self.tags) if x[1]==match[1]]))
             return idx
 
     def sample_uniform(self,id_or_tag,**args):
