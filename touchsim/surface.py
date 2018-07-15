@@ -73,6 +73,13 @@ class Surface(object):
                 self.area.append(regions[i+1].area/self.pxl_per_mm**2.)
             self.num = len(self.boundary)
 
+            self.bbox_min = np.zeros((self.num,2))
+            self.bbox_max = np.zeros((self.num,2))
+            for i in range(self.num):
+                bb = bbox(self.boundary[i])
+                self.bbox_min[i] = bb[0]
+                self.bbox_max[i] = bb[1]
+
         self.construct_dist_matrix()
         self.tags = args.get('tags',[('','','') for i in range(self.num)])
         self.density = args.get('density',{('SA1',''):10.,('RA',''):10., ('PC',''):10.})
