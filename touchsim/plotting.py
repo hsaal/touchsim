@@ -2,6 +2,7 @@ import holoviews as hv
 import re
 import numpy as np
 import warnings
+from math import ceil
 
 from .classes import Afferent,AfferentPopulation,Stimulus,Response
 from .surface import Surface,hand_surface
@@ -124,8 +125,14 @@ def plot_surface(obj,**args):
     idx = obj.tag2idx(region)
     labels = args.get('labels',False)
     coord = args.get('coord',None)
+
+    amin = np.min(obj.bbox_min[idx],axis=0)
+    amax = np.max(obj.bbox_max[idx],axis=0)
+    wh = amax-amin
     hvobj = hv.Path([obj.boundary[i] for i in idx]).opts(
-        style=dict(color='k'),plot=dict(yaxis=None,xaxis=None,aspect='equal'))
+        style=dict(color='k'),plot=dict(yaxis=None,xaxis=None,aspect='equal',
+        width=int(ceil(wh[0])),height=int(ceil(wh[1]))))
+
     if coord is not None:
         hvobj *= hv.Curve([obj.hand2pixel((0,0)),obj.hand2pixel((coord,0))]) *\
             hv.Curve([obj.hand2pixel((0,0)),obj.hand2pixel((0,coord))])
