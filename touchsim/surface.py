@@ -61,7 +61,7 @@ class Surface(object):
             regions = regionprops(labels)
             self.num -= 1
             self.boundary = []
-            self.centers = []
+            self._centers = []
             self.area = []
             for i in range(self.num):
                 dd = distance_transform_edt(np.flipud(labels==(i+2)))
@@ -69,9 +69,10 @@ class Surface(object):
                 if len(xy)==0:
                     continue
                 self.boundary.append(xy[0][:,::-1])
-                self.centers.append(np.mean(xy[0][:,::-1],axis=0))
+                self._centers.append(np.mean(xy[0][:,::-1],axis=0))
                 self.area.append(regions[i+1].area/self.pxl_per_mm**2.)
             self.num = len(self.boundary)
+            self._centers = np.array(self._centers)
             self.area = np.array(self.area)
 
             self.bbox_min = np.zeros((self.num,2))
@@ -99,6 +100,10 @@ class Surface(object):
 
     def __str__(self):
         return 'Surface with ' + str(self.num) + ' regions.'
+
+    @property
+    def centers(self):
+        return self.pixel2hand(self._centers)
 
     def hand2pixel(self,locs):
         """Transforms from surface coordinates to pixel coordinates.
