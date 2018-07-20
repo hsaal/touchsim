@@ -10,8 +10,37 @@ from .surface import Surface,hand_surface
 def plot(obj=hand_surface,**args):
     """A visual representation of an AfferentPopulation, a Stimulus, a Response,
     or a Surface object, depending on what type of object the function is called
-    with. The function will then call plot_afferent_population(), plot_stimulus(),
-    plot_response(), or plot_surface() as appropriate.
+    with.
+
+    Args:
+        obj: AfferentPopulation, Stimulus, Response, or Surface object to be
+            plotted (default:hand_surface).
+
+    Kwargs for Surface:
+        region (string): Tag(s) to only plot selected regions (default: None).
+        tags (bool): Adds region tags to outline (default: False).
+        coord (float): if set, plot coordinate axes with specified lengths
+            in mm (default: None).
+        locator (bool): Dynamically shows current cursor position (only works with
+            'bokeh' plotting backend; default: False).
+
+    Kwargs for Stimulus:
+        spatial = Plots pin positions spatially if true, otherwise plots pin traces
+            over time (default: False).
+        grid = Plots ping traces in separate panels instead of overlaid, only
+            meaningful when spatial=True (default: False).
+        sur = Surface to use for underlying coordinate system only
+            meaningful when spatial=True (default: hand_surface).
+        bin = Width of time bins in ms, used when generating animations (default: Inf).
+
+    Kwargs for Response:
+        spatial = Plots spatial response plot if true, otherwise plots spike trains
+            over time (default: False).
+        scale = Scales spatial response indicators by firing rate if true, otherwise
+            indicates firing rate through color (default: True).
+        scaling_factor = Sets response scaling factor, only meaningful, if scale=True
+            (default: 2)
+        bin = Width of time bins in ms, used when generating animations (default: Inf).
     """
 
     with warnings.catch_warnings():
@@ -160,5 +189,15 @@ def plot_surface(obj,**args):
     return hvobj
 
 def figsave(hvobj,filename,**args):
+    """Saves a plot to an image file.
+
+    Args:
+        hvobj (holoviews object): Plot to be saved.
+        filename (string): Filename (without extension).
+
+    Kwargs:
+        fmt (string): Image format (default: 'png'). Use 'gif' when saving
+            animations.
+    """
     fmt = args.pop('fmt','png')
     hv.renderer('matplotlib').instance(**args).save(hvobj, filename, fmt=fmt)
