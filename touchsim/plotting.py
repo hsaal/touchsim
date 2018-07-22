@@ -117,20 +117,23 @@ def plot_stimulus(obj,**args):
 
 def plot_response(obj,**args):
     spatial = args.get('spatial',False)
+    bin = args.get('bin',float('Inf'))
     if not spatial:
-        idx = [i for i in range(len(obj.spikes)) if len(obj.spikes[i]>0)]
-        spikes = dict()
-        for i in range(len(idx)):
-            s = hv.Spikes(obj.spikes[idx[i]], kdims=['Time'])
-            spikes[i] = s.opts(plot=dict(position=0.1*i,spike_length=0.1),
-                style=dict(color=tuple(
-                Afferent.affcol[obj.aff.afferents[idx[i]].affclass])))
-        hvobj = hv.NdOverlay(spikes).opts(plot=dict(yaxis=None))
+        if np.isinf(bin):
+            idx = [i for i in range(len(obj.spikes)) if len(obj.spikes[i]>0)]
+            spikes = dict()
+            for i in range(len(idx)):
+                s = hv.Spikes(obj.spikes[idx[i]], kdims=['Time'])
+                spikes[i] = s.opts(plot=dict(position=0.1*i,spike_length=0.1),
+                    style=dict(color=tuple(
+                    Afferent.affcol[obj.aff.afferents[idx[i]].affclass])))
+            hvobj = hv.NdOverlay(spikes).opts(plot=dict(yaxis=None))
+        else:
+            r = np.float64(obj.psth(bin))
 
     else:
         scale = args.get('scale',True)
         scaling_factor = args.get('scaling_factor',2)
-        bin = args.get('bin',float('Inf'))
         if np.isinf(bin):
             r = obj.rate()
         else:
