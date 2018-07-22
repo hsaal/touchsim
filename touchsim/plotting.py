@@ -118,7 +118,10 @@ def plot_stimulus(obj,**args):
 def plot_response(obj,**args):
     spatial = args.get('spatial',False)
     bin = args.get('bin',float('Inf'))
+
+    # raster or psth plots
     if not spatial:
+        # raster plot
         if np.isinf(bin):
             idx = [i for i in range(len(obj.spikes)) if len(obj.spikes[i]>0)]
             spikes = dict()
@@ -128,9 +131,17 @@ def plot_response(obj,**args):
                     style=dict(color=tuple(
                     Afferent.affcol[obj.aff.afferents[idx[i]].affclass])))
             hvobj = hv.NdOverlay(spikes).opts(plot=dict(yaxis=None))
+        # psth plot
         else:
+            grid = args.get('grid',False)
             r = np.float64(obj.psth(bin))
+            d = {i:hv.Curve(r[i]) for i in range(r.shape[0])}
+            if grid:
+                hvobj = hv.NdLayout(d)
+            else:
+                hvobj = hv.NdOverlay(d)
 
+    # spatial plot
     else:
         scale = args.get('scale',True)
         scaling_factor = args.get('scaling_factor',2)
