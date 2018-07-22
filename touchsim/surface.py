@@ -1,6 +1,7 @@
 import numpy as np
 import re
 import os.path
+import warnings
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import dijkstra
 from scipy.ndimage.morphology import distance_transform_edt
@@ -11,6 +12,8 @@ from matplotlib import path
 from PIL import Image
 
 from .constants import hand_tags,hand_orig,hand_pxl_per_mm,hand_theta,hand_density
+
+default_density = {('SA1',''):10., ('RA',''):10., ('PC',''):10.}
 
 class Surface(object):
     """A class representing a finite surface, which can be subdivided into
@@ -54,6 +57,8 @@ class Surface(object):
 
         if self.outline is None:
             self.num = 0
+            self.density = {}
+            self.tags = []
         else:
             self.outline = np.int64(thin(self.outline))
             labels,self.num = label(self.outline,connectivity=1,background=1,\
@@ -82,9 +87,11 @@ class Surface(object):
                 self.bbox_min[i] = bb[0]
                 self.bbox_max[i] = bb[1]
 
+            self.tags = args.get('tags',['' for i in range(self.num)])
+            self.density = args.get('density',default_density)
+
         self.construct_dist_matrix()
-        self.tags = args.get('tags',['' for i in range(self.num)])
-        self.density = args.get('density',{('SA1',''):10.,('RA',''):10., ('PC',''):10.})
+
 
     @property
     def density(self):
@@ -93,10 +100,22 @@ class Surface(object):
     @density.setter
     def density(self,density):
         self._density = {}
+        wflag = False
         for k in density.keys():
             idx = self.tag2idx(k[1])
+            if len(idx)==0:
+                warnings.warn("No matches found for tag '" + k[1] + "'.",
+                    stacklevel=2)
             for i in idx:
+                if (k[0],i) in self._density.keys():
+                    wflag = True
                 self._density[(k[0],i)] = density[k]
+        if wflag:
+            warnings.warn("Density assignment not unique. Please check tags.",
+                stacklevel=2)
+        if len(self._density.keys())<self.num*3:
+            warnings.warn("Some regions have no density assigned.",
+                stacklevel=2)
 
     def __str__(self):
         return 'Surface with ' + str(self.num) + ' regions.'
