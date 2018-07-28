@@ -198,6 +198,9 @@ def figsave(hvobj,filename,**args):
     Kwargs:
         fmt (string): Image format (default: 'png'). Use 'gif' when saving
             animations.
+        size (int): Figure size in percent (default: 100).
+        dpi (int): Figure resolution in dots per inch.
+        fps (int): Frames per second for animations.
     """
     fmt = args.pop('fmt','png')
     hv.renderer('matplotlib').instance(**args).save(hvobj, filename, fmt=fmt)

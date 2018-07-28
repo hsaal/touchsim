@@ -10,14 +10,31 @@ from . import constants
 from .surface import null_surface
 
 class Afferent(object):
-    ''' Creates single afferent object.
-    '''
+    """A single afferent, which can be placed on a surface and respond to tactile
+    stimuli.
+    """
     affclasses = ['SA1','RA','PC']
     affdepths = constants.affdepths
     affparams = constants.affparams
     affcol = constants.affcol
 
     def __init__(self,affclass,**args):
+        """Initializes an Afferent object.
+
+        Args:
+            affclass (string): Afferent class, one of 'SA1', 'RA', or 'PC'.
+
+        Kwargs:
+            location (array): Location of the afferent (default: [0,0]).
+            noisy (bool): Injects noise into membrane potential (default: True).
+            delay (bool) = Adds delays to mimic travel to neural recording site
+                (default: False).
+            surface (Surface object): The surface on which Afferent is located
+                (default: null_surface).
+            depth (float) = Depth of afferent in the skin (default: standard depth
+                depening on afferent class).
+            idx (int): ID number of neuron model (default: randomly chosen).
+        """
         self.affclass = affclass
         self.location = np.atleast_2d(args.get('location',np.array([[0., 0.]])))
         self.depth = args.get('depth',None)
@@ -64,15 +81,33 @@ class Afferent(object):
         return self
 
     def response(self,stim):
+        """Calculates the afferent's spiking response to a tactile stimulus.
+
+        Args:
+            stim (Stimulus object): The tactile stimulus.
+
+        Returns:
+            Response object.
+        """
         return AfferentPopulation(self).response(stim)
 
 
 class AfferentPopulation(object):
-    ''' Creates an afferent population object.
-    '''
-    def __init__(self,*afferents,**args):
-        self.afferents = list(afferents)
+    """A population of afferents.
+    """
 
+    def __init__(self,*afferents,**args):
+        """Initializes an AfferentPopulation object.
+
+        Args:
+            afferents (string): Afferent class, one of 'SA1', 'RA', or 'PC'.
+
+        Kwargs:
+            surface (Surface object): The surface on which Afferent is located
+                (default: null_surface).
+            args: All other kwargs will be passed on to Afferent constructor.
+        """
+        self.afferents = list(afferents)
         self.surface = args.pop('surface',null_surface)
 
         broadcast = aflag = False
@@ -190,9 +225,26 @@ class AfferentPopulation(object):
         return np.asarray(list(map(lambda x:x.noisy,self.afferents)))
 
     def find(self,affclass):
+        """Finds afferents in the population of a given class.
+
+        Args:
+            affclass (string): Afferent class (e.g. 'SA1').
+
+        Returns:
+            List of True/False values.
+        """
         return list(map(lambda x:x.affclass==affclass,self.afferents))
 
     def response(self,stim):
+        """Calculates the afferent population's spiking response to a tactile
+        stimulus.
+
+        Args:
+            stim (Stimulus object): The tactile stimulus.
+
+        Returns:
+            Response object.
+        """
         assert type(stim) is Stimulus or type(stim[0]) is Stimulus,\
             "Argument needs to be Stimulus object or an iterable over Stimulus objects."
 
@@ -212,9 +264,18 @@ class AfferentPopulation(object):
 
 
 class Stimulus(object):
-    ''' Creates a stimulus object.
-    '''
+    """A tactile stimulus.
+    """
+
     def __init__(self,**args):
+        """Initializes a Stimulus object.
+
+        Kwargs:
+            trace (NxT array) = np.atleast_2d(args.get('trace',np.array([[]])))
+            location (Nx2 array) = np.atleast_2d(args.get('location',np.array([[0., 0.]])))
+            fs (float): Sampling frequency (default: 1000.).
+            pin_radius (float): Pin radius in mm (default: 0.05).
+        """
         self.trace = np.atleast_2d(args.get('trace',np.array([[]])))
         self.location = np.atleast_2d(args.get('location',np.array([[0., 0.]])))
         self.fs = args.get('fs',1000.)
@@ -252,6 +313,9 @@ class Stimulus(object):
         return self
 
     def compute_profile(self):
+        """Computes surface profile over time. This method is executed
+        automatically whenever the 'trace' property changes.
+        """
         new_radius = check_pin_radius(self.location,self.pin_radius)
         if self.pin_radius>new_radius:
             warnings.warn(
@@ -262,6 +326,16 @@ class Stimulus(object):
             self.trace,self.location,self.fs,self.pin_radius)
 
     def propagate(self,aff):
+        """Propagates the stimulus to specific afferent locations.
+
+        Args:
+            aff (Afferent or AfferentPopulation object): The afferent location(s)
+                the stimulus is propagated to.
+
+        Returns:
+            Tuple consisting of the static mechanical component, the dynamic
+            mechanical component, and the sampling rate.
+        """
         stat_comp = circ_load_vert_stress(
             self._profile,self.location,self.pin_radius,aff.location,aff.depth)
         dyn_comp = circ_load_dyn_wave(
@@ -271,9 +345,24 @@ class Stimulus(object):
 
 
 class Response(object):
-    ''' Creates a response object to stimulus.
-    '''
+    """A Response by an AfferentPopulation to a Stimulus.
+    """
+
     def __init__(self,a,s,r):
+        """Initializes a Response object.
+
+        Args:
+            a (AfferentPopulation): The population of responding afferents
+            s (Stimulus or list): The Stimulus (or list of Stimuli) that the
+                afferents are responding to.
+            r (list): List of arrays containing the spike times for each afferent,
+                contained in another list with entries for each Stimulus object.
+
+        Note:
+            Response objects are created by calling the response method of an
+            Afferent or AfferentPopulation object; there should be little need to
+            call the constructor manually.
+        """
         assert len(s)==len(r)
         assert len(a)==len(r[0])
 
@@ -328,6 +417,15 @@ class Response(object):
             return sp
 
     def rate(self,sep=False):
+        """Calculates the firing rate (in Hz) for each afferent.
+
+        Kwargs:
+            sep (bool): Whether firing rates should be separated by stimulus or
+                not (default: False).
+
+        Returns:
+            Nx1 array of firing rates (NxS is sep is True).
+        """
         r = np.zeros((len(self.aff),len(self.stim)))
         for i,s in enumerate(self._spikes):
             r[:,i:i+1] = (np.atleast_2d(np.array(list(map(lambda x:x.size, s)))) \
@@ -336,6 +434,14 @@ class Response(object):
             r = np.atleast_2d(np.mean(r,axis=1)).T
         return r
 
-    def psth(self,bin=10):
+    def psth(self,bin=10.):
+        """Calculates the time-varying response (psth) for each afferent.
+
+        Kwargs:
+            bin (float): Length of the time bins in ms (default: 10.).
+
+        Returns:
+            NxB array of firing rates (N: number of afferents, B: number of bins).
+        """
         bins = np.r_[0:self.duration+bin/1000.:bin/1000.]
         return np.array(list(map(lambda x:np.histogram(x,bins=bins)[0],self.spikes)))

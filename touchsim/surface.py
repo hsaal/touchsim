@@ -16,7 +16,7 @@ from .constants import hand_tags,hand_orig,hand_pxl_per_mm,hand_theta,hand_densi
 default_density = {('SA1',''):10., ('RA',''):10., ('PC',''):10.}
 
 class Surface(object):
-    """A class representing a finite surface, which can be subdivided into
+    """A representation of a finite surface, which can be subdivided into
     separate regions, and on which Afferent objects can be placed.
     """
 
