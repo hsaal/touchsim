@@ -96,46 +96,16 @@ class AfferentPopulation(object):
     """A population of afferents.
     """
 
-    def __init__(self,*afferents,**args):
+    def __init__(self,*afferents,surface=null_surface):
         """Initializes an AfferentPopulation object.
 
-        Args:
-            afferents (string): Afferent class, one of 'SA1', 'RA', or 'PC'.
-
         Kwargs:
+            afferents (list): List of afferents (default: []).
             surface (Surface object): The surface on which Afferent is located
                 (default: null_surface).
-            args: All other kwargs will be passed on to Afferent constructor.
         """
         self.afferents = list(afferents)
-        self.surface = args.pop('surface',null_surface)
-
-        broadcast = aflag = False
-        for key in args:
-            v = args[key]
-            if type(v) is list:
-                n = len(v)
-            elif type(v) is np.ndarray:
-                n = v.shape[0]
-            else:
-                continue
-
-            if n>1:
-                b_key = key
-                if b_key == 'affclass':
-                    aflag = True
-                b_val = args.pop(key)
-                broadcast = True
-                break
-
-        if broadcast:
-            for i in b_val:
-                if aflag:
-                    self.afferents.append(Afferent(i,**args))
-                else:
-                    self.afferents.append(Afferent(**{b_key:i},**args))
-        elif len(args)>0:
-            self.afferents.append(Afferent(**args))
+        self.surface = surface
 
     def __str__(self):
         ''' _str_ creates a string representation of the object,
