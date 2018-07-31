@@ -2,7 +2,7 @@ name: ts
 
 dependencies:
   - python>=3.6
-  - numpy>=1.13
+  - numpy<=1.14
   - scipy
   - scikit-image
   - numba>=0.34
