@@ -120,6 +120,9 @@ class Surface(object):
     def __str__(self):
         return 'Surface with ' + str(self.num) + ' regions.'
 
+    def __len__(self):
+        return len(self.num)
+
     @property
     def centers(self):
         return self.pixel2hand(self._centers)
