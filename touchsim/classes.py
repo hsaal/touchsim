@@ -54,6 +54,10 @@ class Afferent(object):
         if not self.delay:
             self.parameters[12] = 0.;
 
+    def __str__(self):
+        return 'Afferent of class ' + self.affclass + ' (gid: ' +\
+            str(self.gid) + ').'
+
     def __len__(self):
         return 1
 
@@ -108,9 +112,6 @@ class AfferentPopulation(object):
         self.surface = surface
 
     def __str__(self):
-        ''' _str_ creates a string representation of the object,
-        shows the number of each afferent type in the afferent population.
-        '''
         return 'AfferentPopulation with ' + str(len(self)) + ' afferent(s): ' +\
                 str(sum(self.find('SA1'))) + ' SA1, ' + str(sum(self.find('RA'))) +\
                  ' RA, ' + str(sum(self.find('PC'))) + ' PC.'
@@ -156,9 +157,6 @@ class AfferentPopulation(object):
             raise TypeError(
                 "Can only add elements of type Afferent or AfferentPopulation.")
         return self
-
-    def num(self):
-        return len(self)
 
     @property
     def affclass(self):
