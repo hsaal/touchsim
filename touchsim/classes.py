@@ -13,7 +13,7 @@ class Afferent(object):
     """A single afferent, which can be placed on a surface and respond to tactile
     stimuli.
     """
-    affclasses = constants.affclasses
+    affclasses = ['SA1','RA','PC']
     affdepths = constants.affdepths
     affparams = constants.affparams
     affcol = constants.affcol
@@ -68,8 +68,7 @@ class Afferent(object):
     @affclass.setter
     def affclass(self,affclass):
         if not affclass in Afferent.affclasses:
-            raise IOError("Afferent class must be one of " + \
-                ", ".join(Afferent.affclasses) + ".")
+            raise IOError("Afferent class must be SA1, RA, or PC")
         self._affclass = affclass
 
     @property
@@ -296,7 +295,8 @@ class Stimulus(object):
         new_radius = check_pin_radius(self.location,self.pin_radius)
         if self.pin_radius>new_radius:
             warnings.warn(
-                "Pin radius too big and has been adjusted to %.1f" % new_radius)
+                "Pin radius too big and has been adjusted to %.2f" % new_radius,
+                stacklevel=3)
             self.pin_radius = new_radius
 
         self._profile, self._profiledyn = skin_touch_profile(
