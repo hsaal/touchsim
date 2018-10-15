@@ -13,7 +13,7 @@ class Afferent(object):
     """A single afferent, which can be placed on a surface and respond to tactile
     stimuli.
     """
-    affclasses = ['SA1','RA','PC']
+    affclasses = constants.affclasses
     affdepths = constants.affdepths
     affparams = constants.affparams
     affcol = constants.affcol
@@ -68,7 +68,8 @@ class Afferent(object):
     @affclass.setter
     def affclass(self,affclass):
         if not affclass in Afferent.affclasses:
-            raise IOError("Afferent class must be SA1, RA, or PC")
+            raise IOError("Afferent class must be one of " + \
+                ", ".join(Afferent.affclasses) + ".")
         self._affclass = affclass
 
     @property

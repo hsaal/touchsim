@@ -1,5 +1,7 @@
 import numpy as np
 
+affclasses = ['SA1','RA','PC']
+
 # Afferent depths in skin
 affdepths = {'SA1':.3,'RA':1.6,'PC':2.}
 
