@@ -63,11 +63,12 @@ class Surface(object):
             self.outline = np.int64(thin(self.outline))
             labels,self.num = label(self.outline,connectivity=1,background=1,\
                 return_num=True)
-            regions = regionprops(labels)
+            regions = regionprops(np.flipud(labels))
             self.num -= 1
             self.boundary = []
             self._centers = []
-            self.area = []
+            self._coords = []
+            self._area = []
             for i in range(self.num):
                 dd = distance_transform_edt(np.flipud(labels==(i+2)))
                 xy = find_contours(dd,1)
@@ -75,10 +76,11 @@ class Surface(object):
                     continue
                 self.boundary.append(xy[0][:,::-1])
                 self._centers.append(np.mean(xy[0][:,::-1],axis=0))
-                self.area.append(regions[i+1].area/self.pxl_per_mm**2.)
+                self._area.append(regions[i+1].area)
+                self._coords.append(regions[i+1].coords[:,::-1])
             self.num = len(self.boundary)
             self._centers = np.array(self._centers)
-            self.area = np.array(self.area)
+            self._area = np.array(self._area)
 
             self.bbox_min = np.zeros((self.num,2))
             self.bbox_max = np.zeros((self.num,2))
@@ -127,6 +129,10 @@ class Surface(object):
     def centers(self):
         return self.pixel2hand(self._centers)
 
+    @property
+    def area(self):
+        return self._area/self.pxl_per_mm**2.
+
     def hand2pixel(self,locs):
         """Transforms from surface coordinates to pixel coordinates.
 
@@ -161,7 +167,7 @@ class Surface(object):
         if self.tags is None:
             raise RuntimeError("No tags set for this surface.")
         if tag is None:
-            return range(self.num)
+            return list(range(self.num))
         else:
             idx = [i for i in range(self.num) if len(re.findall(tag,self.tags[i]))>0]
             return idx
@@ -176,7 +182,7 @@ class Surface(object):
         Kwargs:
             num (int): Number of locations to sample (default: None).
             density (float): Density of locations to be sampled expressed as
-                locations per cm^2 (default: SA1 density for specified region).
+                locations per cm^2 (default: SA1 density for specified region(s)).
                 This parameter will only be evaluated if num is not given / set to None.
             seed (int): Random number seed
 
@@ -188,29 +194,34 @@ class Surface(object):
 
         seed = args.get('seed',None)
 
-        if type(id_or_tag) is str:
-            idx = self.tag2idx(tag)[0]
-        else:
-            idx = id_or_tag
+        if type(id_or_tag) is str or id_or_tag is None:
+            idx = self.tag2idx(id_or_tag)
+        elif type(id_or_tag) is int:
+            idx = [id_or_tag]
 
         num = args.get('num',None)
         if num is None:
             if seed is not None:
                 np.random.seed(seed)
-            dens = args.get('density',self.density[('SA1',idx)])
-            dist = np.sqrt(dens)/10./self.pxl_per_mm
-            b = bbox(self.boundary[idx])
-            xy = np.mgrid[b[0,0]:b[1,0]+1./dist:1./dist,b[0,1]:b[1,1]+1./dist:1./dist]
-            xy = xy.reshape(2,xy.shape[1]*xy.shape[2]).T
-            xy += np.random.randn(xy.shape[0],xy.shape[1])/dist/5.
-            p = path.Path(self.boundary[idx])
-            ind = p.contains_points(xy);
-            xy = xy[ind,:]
+            xy_list = []
+            for i in idx:
+                dens = args.get('density',self.density[('SA1',i)])
+                dist = np.sqrt(dens)/10./self.pxl_per_mm
+                b = bbox(self.boundary[i])
+                xy = np.mgrid[b[0,0]:b[1,0]+1./dist:1./dist,b[0,1]:b[1,1]+1./dist:1./dist]
+                xy = xy.reshape(2,xy.shape[1]*xy.shape[2]).T
+                xy += np.random.randn(xy.shape[0],xy.shape[1])/dist/5.
+                p = path.Path(self.boundary[i])
+                ind = p.contains_points(xy);
+                xy = xy[ind,:]
+                xy_list.append(xy)
+            xy = np.concatenate(xy_list)
 
         else:
             xy = np.zeros((num,2))
+            coords = np.concatenate([self._coords[i] for i in idx])
             for i in range(num):
-                xy[i] = rejection_sample(self.boundary[idx])
+                xy[i] = coords[np.random.randint(coords.shape[0])]
 
         return self.pixel2hand(xy)
 
@@ -287,20 +298,6 @@ def bbox(xy):
     """Calculates bounding box for arbitrary boundary.
     """
     return np.vstack((np.min(xy,axis=0),np.max(xy,axis=0)))
-
-def rejection_sample(boundary,seed=None):
-    """Samples a single location from within arbitrary boundary.
-    """
-    if seed is not None:
-        np.random.seed(seed)
-    b = bbox(boundary)
-    p = path.Path(boundary)
-    inside = False
-    while not inside:
-        xy = np.atleast_2d(b[0]) + np.random.random((1,2))*\
-            (np.atleast_2d(b[1])-np.atleast_2d(b[0]))
-        inside = p.contains_point(xy.T)
-    return xy
 
 def image2outline(filename,thres=250):
     """Converts image to greyscale and thresholds to generate binary outline.
