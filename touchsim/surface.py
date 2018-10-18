@@ -269,17 +269,19 @@ class Surface(object):
             destination locations.
         """
         if self.D is None:
+            # if infinite sheet, calculate length of straight line
             dx = xy1[:,0:1] - xy2[:,0:1].T
             dy = xy1[:,1:2] - xy2[:,1:2].T
             return np.sqrt(dx**2 + dy**2)
         else:
+            # convert between 2D and 1D coordinate representation
             lin_idx = np.arange(self.outline.size).reshape(self.outline.T.shape)
-
             xyp = np.rint(self.hand2pixel(xy1)).astype(np.int64)
             xyp = lin_idx[xyp[:,0],xyp[:,1]]
             xya = np.rint(self.hand2pixel(xy2)).astype(np.int64)
             xya = lin_idx[xya[:,0],xya[:,1]]
 
+            # flip for speeding up computations
             flip = False
             if xyp.size>xya.size:
                 flip = True
@@ -287,6 +289,10 @@ class Surface(object):
 
             D = dijkstra(self.D,directed=False,indices=xyp)
             D = D[:,xya]
+
+            if np.any(np.isinf(D)):
+                warnings.warn("At least one afferent or pin centre is outside " +
+                    "surface boundary and will be ignored.",stacklevel=2)
 
             if flip:
                 D = D.T
