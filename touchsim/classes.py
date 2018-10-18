@@ -101,16 +101,22 @@ class AfferentPopulation(object):
     """A population of afferents.
     """
 
-    def __init__(self,*afferents,surface=null_surface):
+    def __init__(self,*afferents,**args):
         """Initializes an AfferentPopulation object.
 
+        Args:
+            a1, a2, ... (Afferent): Afferent objects.
+
         Kwargs:
-            afferents (list): List of afferents (default: []).
             surface (Surface object): The surface on which Afferent is located
-                (default: null_surface).
+                (default: a1.surface if set, otherwise null_surface).
         """
         self.afferents = list(afferents)
-        self.surface = surface
+        if len(self.afferents)==0:
+            sur = null_surface
+        else:
+            sur = self.afferents[0].surface
+        self.surface = args.get('surface',sur)
 
     def __str__(self):
         return 'AfferentPopulation with ' + str(len(self)) + ' afferent(s): ' +\
