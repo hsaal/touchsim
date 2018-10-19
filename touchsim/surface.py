@@ -196,8 +196,10 @@ class Surface(object):
 
         if type(id_or_tag) is str or id_or_tag is None:
             idx = self.tag2idx(id_or_tag)
-        elif type(id_or_tag) is int:
+        elif type(id_or_tag) is int or type(id_or_tag) is np.int64:
             idx = [id_or_tag]
+        else:
+            idx = id_or_tag
 
         num = args.get('num',None)
         if num is None:

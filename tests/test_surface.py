@@ -30,6 +30,16 @@ def test_sample_uniform():
         ts.hand_surface.boundary[ts.hand_surface.tag2idx('D1d')[0]])
         ).contains_points(loc)[0]
 
+    loc = ts.hand_surface.sample_uniform([2],num=1,seed=1)
+    assert path.Path(ts.hand_surface.pixel2hand(
+        ts.hand_surface.boundary[ts.hand_surface.tag2idx('D2d')[0]])
+        ).contains_points(loc)[0]
+
+    loc = ts.hand_surface.sample_uniform(2,num=1,seed=1)
+    assert path.Path(ts.hand_surface.pixel2hand(
+        ts.hand_surface.boundary[ts.hand_surface.tag2idx('D2d')[0]])
+        ).contains_points(loc)[0]
+
 def test_distance():
     s = ts.stim_ramp(loc=[0.,10.])
     a = ts.Afferent('SA1',surface=ts.hand_surface)
