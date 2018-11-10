@@ -20,6 +20,9 @@ def test_tags2idx():
     assert 12 in idx and 13 in idx and 14 in idx and\
         16 in idx and 18 in idx and 19 in idx
 
+def test_locate():
+    assert ts.hand_surface.locate([0.,0.])[0][0]=='D2d_t'
+
 def test_sample_uniform():
     loc = ts.hand_surface.sample_uniform('D2d',num=1,seed=1)
     assert path.Path(ts.hand_surface.pixel2hand(

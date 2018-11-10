@@ -172,6 +172,29 @@ class Surface(object):
             idx = [i for i in range(self.num) if len(re.findall(tag,self.tags[i]))>0]
             return idx
 
+    def locate(self,locs):
+        """Maps from coordinates on a surface to region tags and ids.
+
+        Args:
+            locs (array): 2D array of coordinates in pixel space.
+
+        Returns:
+            Tuple containing a list of region tags and a vector of ids.
+        """
+        locs = np.atleast_2d(self.hand2pixel(locs))
+        regions = -np.ones((locs.shape[0],),dtype=np.int8)
+
+        for b in range(self.num):
+            p = path.Path(self.boundary[b])
+            ind = p.contains_points(locs)
+            regions[ind] = b
+
+        tags = []
+        for l in range(locs.shape[0]):
+            tags.append(self.tags[regions[l]])
+
+        return tags, regions
+
     def sample_uniform(self,id_or_tag,**args):
         """Samples locations from within specified region.
 
