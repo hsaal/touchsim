@@ -302,8 +302,15 @@ class Surface(object):
             # convert between 2D and 1D coordinate representation
             lin_idx = np.arange(self.outline.size).reshape(self.outline.T.shape)
             xyp = np.rint(self.hand2pixel(xy1)).astype(np.int64)
+            xyp[xyp<0] = 0
+            xyp[xyp[:,0]>=lin_idx.shape[0],0] = lin_idx.shape[0]-1
+            xyp[xyp[:,1]>=lin_idx.shape[1],1] = lin_idx.shape[1]-1
             xyp = lin_idx[xyp[:,0],xyp[:,1]]
+
             xya = np.rint(self.hand2pixel(xy2)).astype(np.int64)
+            xya[xya<0] = 0
+            xya[xya[:,0]>=lin_idx.shape[0],0] = lin_idx.shape[0]-1
+            xya[xya[:,1]>=lin_idx.shape[1],1] = lin_idx.shape[1]-1
             xya = lin_idx[xya[:,0],xya[:,1]]
 
             # flip for speeding up computations

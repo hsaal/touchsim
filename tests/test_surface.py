@@ -59,3 +59,16 @@ def test_distance():
     a = ts.Afferent('SA1',surface=ts.hand_surface)
     with pytest.warns(Warning):
         r = a.response(s)
+
+def test_distance_outside_outline():
+    s = ts.stim_ramp(loc=ts.hand_surface.pixel2hand([-10,0]))
+    a = ts.Afferent('SA1',surface=ts.hand_surface)
+    with pytest.warns(Warning):
+        r = a.response(s)
+    assert r.rate()[0,0]==0.
+
+    s = ts.stim_ramp(loc=ts.hand_surface.pixel2hand([1000,0]))
+    a = ts.Afferent('SA1',surface=ts.hand_surface)
+    with pytest.warns(Warning):
+        r = a.response(s)
+    assert r.rate()[0,0]==0.
