@@ -232,8 +232,10 @@ class AfferentPopulation(object):
         for s in s_iter:
             strain, udyn, fs = s.propagate(self)
             if not isclose(fs,5000.):
-                strain = resample(strain,int(round(strain.shape[0]/fs*5000.)))
-                udyn = resample(udyn,int(round(udyn.shape[0]/fs*5000.)))
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore") # suppress scipy FutureWarning
+                    strain = resample(strain,int(round(strain.shape[0]/fs*5000.)))
+                    udyn = resample(udyn,int(round(udyn.shape[0]/fs*5000.)))
             r.append(lif_neuron(self,strain,udyn))
         return Response(self,stim,r)
 
