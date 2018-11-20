@@ -216,6 +216,8 @@ class Surface(object):
             raise RuntimeError("Cannot sample from surface without border.")
 
         seed = args.get('seed',None)
+        if seed is not None:
+            np.random.seed(seed)
 
         if type(id_or_tag) is str or id_or_tag is None:
             idx = self.tag2idx(id_or_tag)
@@ -226,8 +228,6 @@ class Surface(object):
 
         num = args.get('num',None)
         if num is None:
-            if seed is not None:
-                np.random.seed(seed)
             xy_list = []
             for i in idx:
                 dens = args.get('density',self.density[('SA1',i)])
