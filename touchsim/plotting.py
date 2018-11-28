@@ -18,6 +18,8 @@ def plot(obj=hand_surface,**args):
 
     Kwargs for Surface:
         region (string): Tag(s) to only plot selected regions (default: None).
+        fill (dict): Plots filled regions rather than outlines with intensity values
+            provided in the dictionary for each region(s) (default: None).
         tags (bool): Adds region tags to outline (default: False).
         coord (float): if set, plot coordinate axes with specified lengths
             in mm (default: None).
@@ -161,7 +163,7 @@ def plot_surface(obj,**args):
     tags = args.get('tags',False)
     coord = args.get('coord',None)
     locator = args.get('locator',False)
-    filled = args.get('filled',False)
+    fill = args.get('fill',None)
 
     amin = np.min(obj.bbox_min[idx],axis=0)
     amax = np.max(obj.bbox_max[idx],axis=0)
@@ -172,12 +174,18 @@ def plot_surface(obj,**args):
         style=dict(color='k'),plot=dict(yaxis=None,xaxis=None,aspect='equal',
         width=int(ceil(wh[0])),height=int(ceil(wh[1]))))
 
-    if filled:
+    if fill is not None:
+        vals = np.nan*np.zeros((obj.num,))
+        for k in fill.keys():
+            _idx = obj.tag2idx(k)
+            for i in _idx:
+                vals[i] = fill[k]
+
         imin = np.min(obj.bbox_min[idx],axis=0).astype(int)
         imax = np.max(obj.bbox_max[idx],axis=0).astype(int)
         im = np.nan*np.zeros(tuple((imax-imin+1)[::-1].tolist()))
         for i in idx:
-            im[obj._coords[i][:,1]-imin[1],obj._coords[i][:,0]-imin[0]] = i
+            im[obj._coords[i][:,1]-imin[1],obj._coords[i][:,0]-imin[0]] = vals[i]
         hvobj = hv.Image(np.flipud(im),bounds=(imin[0],imin[1],imax[0],imax[1])).opts(
             plot=dict(yaxis=None,xaxis=None))
 
