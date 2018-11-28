@@ -187,7 +187,7 @@ def plot_surface(obj,**args):
     if tags:
         hvobj *= hv.Labels({'x': [obj._centers[i][0] for i in idx],
             'y': [obj._centers[i][1] for i in idx],
-            'Label': [str(idx[i]) + ' ' + ''.join(obj.tags[i]) for i in idx]})
+            'Label': [str(i) + ' ' + ''.join(obj.tags[i]) for i in idx]})
 
     # show cursor position in hand coordinates (works only in bokeh)
     if locator:
