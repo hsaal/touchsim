@@ -161,6 +161,7 @@ def plot_surface(obj,**args):
     tags = args.get('tags',False)
     coord = args.get('coord',None)
     locator = args.get('locator',False)
+    filled = args.get('filled',False)
 
     amin = np.min(obj.bbox_min[idx],axis=0)
     amax = np.max(obj.bbox_max[idx],axis=0)
@@ -170,6 +171,15 @@ def plot_surface(obj,**args):
     hvobj = hv.Path([obj.boundary[i] for i in idx]).opts(
         style=dict(color='k'),plot=dict(yaxis=None,xaxis=None,aspect='equal',
         width=int(ceil(wh[0])),height=int(ceil(wh[1]))))
+
+    if filled:
+        imin = np.min(obj.bbox_min[idx],axis=0).astype(int)
+        imax = np.max(obj.bbox_max[idx],axis=0).astype(int)
+        im = np.nan*np.zeros(tuple((imax-imin+1)[::-1].tolist()))
+        for i in idx:
+            im[obj._coords[i][:,1]-imin[1],obj._coords[i][:,0]-imin[0]] = i
+        hvobj = hv.Image(np.flipud(im),bounds=(imin[0],imin[1],imax[0],imax[1])).opts(
+            plot=dict(yaxis=None,xaxis=None))
 
     if coord is not None:
         hvobj *= hv.Curve([obj.hand2pixel((0,0)),obj.hand2pixel((coord,0))]) *\
