@@ -191,7 +191,10 @@ class Surface(object):
 
         tags = []
         for l in range(locs.shape[0]):
-            tags.append(self.tags[regions[l]])
+            if regions[l]<0:
+                tags.append('')
+            else:
+                tags.append(self.tags[regions[l]])
 
         return tags, regions
 
