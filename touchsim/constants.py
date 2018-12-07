@@ -1,9 +1,9 @@
 import numpy as np
 
-affclasses = ['SA1','RA','PC']
+affclasses = ['SA1','RA','PC','SA2']
 
 # Afferent depths in skin
-affdepths = {'SA1':.3,'RA':1.6,'PC':2.}
+affdepths = {'SA1':.3,'RA':1.6,'PC':2.,'SA2':.3}
 
 # SA1 parameters
 affparamsSA = np.array([[10.1317138671875, 0.43464779718507762, -0.3183095561981179,
@@ -80,9 +80,10 @@ affparamsPC = np.array([[27.50213623046875, 0., 0., -257.79678911169367, -185.65
                     3.6196996516799924]])
 
 # parameters dictionary
-affparams = {'SA1':affparamsSA,'RA':affparamsRA,'PC':affparamsPC}
+affparams = {'SA1':affparamsSA,'RA':affparamsRA,'PC':affparamsPC,'SA2':affparamsSA}
 
-affcol = {'SA1':[0.1961,0.6275,0.1569],'RA':[0.1176,0.4706,0.7059],'PC':[1.0000,0.4980,0.]}
+affcol = {'SA1':[0.1961,0.6275,0.1569],'RA':[0.1176,0.4706,0.7059],
+    'PC':[1.0000,0.4980,0.],'SA2':[.5,.5,.5]}
 
 # IH basis
 ihbasis = np.array([[1., 0.96225940969727608, 0.87536423208046354, 0.766769433248516, 0.652610209235263,
