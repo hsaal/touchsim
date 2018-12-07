@@ -76,6 +76,10 @@ class Afferent(object):
     def gid(self):
         return np.asarray([Afferent.affclasses.index(self.affclass), self.idx])
 
+    @property
+    def region(self):
+        return self.surface.locate(self.location)
+
     def __add__(self,other):
         if type(other) is Afferent:
             return AfferentPopulation(self,other)
@@ -117,6 +121,8 @@ class AfferentPopulation(object):
         else:
             sur = self.afferents[0].surface
         self.surface = args.get('surface',sur)
+        for a in self.afferents:
+            a.surface = self.surface
 
     def __str__(self):
         return 'AfferentPopulation with ' + str(len(self)) + ' afferent(s): ' +\
@@ -130,18 +136,25 @@ class AfferentPopulation(object):
         if type(idx) is int:
             return self.afferents[idx]
         elif type(idx) is slice:
-            return AfferentPopulation(*self.afferents[idx])
+            return AfferentPopulation(*self.afferents[idx],surface=self.surface)
         elif (type(idx) is list and len(idx)>0) or (type(idx) is np.ndarray and idx.size>0):
-            if type(idx[0]) is bool:
+            if type(idx[0]) is bool or type(idx[0]) is np.bool_:
                 idx, = np.nonzero(idx)
             if type(idx) is np.ndarray:
                 idx = idx.tolist()
-            return AfferentPopulation(*[self.afferents[i] for i in idx])
+            return AfferentPopulation(*[self.afferents[i] for i in idx],surface=self.surface)
         elif idx in Afferent.affclasses:
             return self[self.find(idx)]
+        elif type(idx) is str:
+            ridx = self.surface.tag2idx(idx)
+            rr = self.region[1]
+            bidx = np.zeros((len(self,)),dtype=np.bool_)
+            for r in ridx:
+                bidx = np.logical_or(bidx,np.array([rr_sub==r for rr_sub in rr]))
+            return self[bidx]
         else:
             raise TypeError(
-                "Indices must be integers, slices, lists, or affclass.")
+                "Indices must be integers, slices, lists, affclass, or surface region.")
 
     def __add__(self,other):
         a = AfferentPopulation()
@@ -180,6 +193,10 @@ class AfferentPopulation(object):
     @property
     def gid(self):
         return np.asarray(list(map(lambda x:x.gid,self.afferents)))
+
+    @property
+    def region(self):
+        return self.surface.locate(self.location)
 
     @property
     def location(self):

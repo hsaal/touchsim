@@ -74,6 +74,11 @@ def test_affpop_index():
     assert len(a['RA'])==9
     assert len(a['PC'])==4
 
+def test_affpop_region_index():
+    a = ts.AfferentPopulation(ts.Afferent('SA1',surface=ts.hand_surface))
+    assert len(a['D2d'])==1
+    assert a['D2d'].region[0][0]=='D2d_t'
+
 def test_affpop_add():
     a = ts.AfferentPopulation(ts.Afferent('SA1'))
     a2 = ts.Afferent('RA')
