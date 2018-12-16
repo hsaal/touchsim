@@ -6,5 +6,5 @@ dependencies:
   - scipy
   - scikit-image
   - numba>=0.34
-  - matplotlib=2.2.2
+  - matplotlib>=2.2.2
   - holoviews>=1.8.1
