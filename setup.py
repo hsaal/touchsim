@@ -3,7 +3,7 @@ from setuptools import setup
 setup(name='touchsim',
       version='0.1',
       description='TouchSim: Simulating tactile signals from the whole hand with millisecond precision',
-      url='https://bitbucket.org/hsaal/touch-sim',
+      url='https://github.com/hsaal/touchsim',
       classifiers=[
         'Development Status :: 3 - Alpha',
         'Programming Language :: Python :: 3.6',
