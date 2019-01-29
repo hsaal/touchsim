@@ -293,7 +293,7 @@ class Stimulus(object):
 
     def __iadd__(self,other):
         if type(other) is not Stimulus:
-            raise RuntimeError("Can only add objects of type Stimulus.")
+            raise TypeError("Can only add objects of type Stimulus.")
         if self.pin_radius!=other.pin_radius:
             warnings.warn("Overwriting pin_radius of second Stimulus object!")
         if self.fs!=other.fs:
@@ -380,6 +380,8 @@ class Response(object):
         elif type(idx) is AfferentPopulation:
             a = idx
             ii = [self.aff.afferents.index(a) for a in idx]
+        else:
+            raise TypeError("Index must be Afferent or AfferentPopulation.")
 
         r = list()
         for i in range(len(self.stim)):
