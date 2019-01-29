@@ -218,6 +218,7 @@ def stim_noise(**args):
         pin_radius (float): radius of probe pin in mm (default: 0.5).
         pre_indent (float): static indentation throughout trial (default: 0.).
         pad_len (float): duration of stimulus zero-padding (default: 0.).
+        seed (int): seed for random number generator (default: None).
 
     Returns:
         Stimulus object.
@@ -232,11 +233,17 @@ def stim_noise(**args):
     pin_radius = args.get('pin_radius',default_params['pin_radius'])
     pre_indent = args.get('pre_indent',default_params['pre_indent'])
     pad_len = args.get('pad_len',default_params['pad_len'])
+    seed = args.get('seed',None)
+
+    if seed is not None:
+        np.random.seed(seed)
 
     trace = np.random.randn(int(fs*len))
 
     bfilt,afilt = signal.butter(3,np.array(freq)/fs/2.,btype='bandpass')
     trace = signal.lfilter(bfilt,afilt,trace)
+
+    trace = trace/np.std(trace)*amp
 
     apply_ramp(trace,ramp_len=ramp_len,fs=fs)
     if pad_len>0:
