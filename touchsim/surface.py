@@ -334,6 +334,16 @@ class Surface(object):
 
             return D
 
+    def export(self,filename='surface.gen'):
+        text_file = open(filename, "w")
+        for i in range(self.num):
+            text_file.write("%s %s\n" % (i,self.tags[i]))
+            for p in self.boundary[i]:
+                text_file.write("%s %s\n" % (p[0],p[1]))
+            text_file.write("END\n")
+        text_file.write("END\n")
+        text_file.close()
+
 
 def bbox(xy):
     """Calculates bounding box for arbitrary boundary.
