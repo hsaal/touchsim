@@ -350,5 +350,5 @@ def image2outline(filename,thres=250):
 
 null_surface = Surface()
 hand_surface = Surface(filename=(os.path.dirname(os.path.dirname(__file__))\
-        + '/surfaces/hand.tiff'),orig=hand_orig,pxl_per_mm=hand_pxl_per_mm,
+        + '/surfaces/hand.png'),orig=hand_orig,pxl_per_mm=hand_pxl_per_mm,
         theta=hand_theta,density=hand_density,tags=hand_tags)
