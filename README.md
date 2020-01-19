@@ -7,7 +7,7 @@ The touchsim package requires Python 3.6 or higher to run. It also requires *num
 If using conda for package management, the following command creates a new environment *ts* with all dependencies installed:
 ```conda env create -f environment.yml```
 
-To install the package, use ```python setup.py install```
+To install the package, use ```python setup.py install```. To install the package in development mode (pointing to the source directory, use ```python setup.py develop```.
 
 If *pytest* is installed, running `pytest` from the base directory will test whether the package is working as intended.
 
