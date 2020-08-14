@@ -60,12 +60,13 @@ def plot(obj=hand_surface,**args):
     raise RuntimeError("Plotting of " + str(type(obj)) + " objects not supported.")
 
 def plot_afferent_population(obj,**args):
+    size = args.get('size',1)
     points = dict()
     for a in Afferent.affclasses:
         p = hv.Points(
             obj.surface.hand2pixel(obj.location[obj.find(a),:]))
         points[a] = p.opts(plot=dict(aspect='equal'),
-            style=dict(color=tuple(Afferent.affcol[a])))
+            style=dict(color=tuple(Afferent.affcol[a]),s=size))
     return hv.NdOverlay(points)
 
 def plot_stimulus(obj,**args):
