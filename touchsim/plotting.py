@@ -49,6 +49,8 @@ def plot(obj=hand_surface,**args):
         warnings.simplefilter("ignore")
         if type(obj) is AfferentPopulation:
             return plot_afferent_population(obj,**args)
+        elif type(obj) is Afferent:
+            return plot_afferent_population(AfferentPopulation(obj),**args)
         elif type(obj) is Stimulus:
             return plot_stimulus(obj,**args)
         elif type(obj) is Response:
