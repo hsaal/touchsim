@@ -1,7 +1,11 @@
 import pytest
 import touchsim as ts
-import holoviews as hv
-from touchsim.plotting import plot
+
+try:
+    import holoviews as hv
+    from touchsim.plotting import plot
+except ImportError:
+    pytest.skip("Holoviews not installed. Skipping plotting tests.", allow_module_level=True)
 
 def test_plot_surface_mpl():
     renderer = hv.renderer('matplotlib')
