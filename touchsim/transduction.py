@@ -211,7 +211,7 @@ def weight_inputs(p,stimi,dstimi,Iinj):
         else:
             Iinj[i]  += -p[4]*dstimi[i]
 
-        ddstimi = (dstimi[i+1 % stimi.shape[0]]-dstimi[i])
+        ddstimi = (dstimi[min(i+1,stimi.shape[0]-1)]-dstimi[i])
         if np.sign(ddstimi)>=0:
             Iinj[i]  += p[5]*ddstimi
         else:
