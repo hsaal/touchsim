@@ -160,9 +160,9 @@ class AfferentPopulation(object):
         a = AfferentPopulation()
         a.afferents = list(self.afferents)
         if type(other) is Afferent:
-            a.afferents.append(other)
+            return AfferentPopulation(*self.afferents,other)
         elif type(other) is AfferentPopulation:
-            a.afferents.extend(other)
+            return AfferentPopulation(*self.afferents,*other.afferents)            
         else:
             raise TypeError(
                 "Can only add elements of type Afferent or AfferentPopulation.")

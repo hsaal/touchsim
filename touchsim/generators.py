@@ -151,13 +151,14 @@ def affpop_surface(**args):
 
     idx = surface.tag2idx(region)
 
-    affpop = AfferentPopulation(surface=surface)
+    afferents = list()
     for a in affclass:
         for i in idx:
             dens = density_multiplier*density[(a,i)]
             xy = surface.sample_uniform(i,density=dens,seed=seed)
             for l in range(xy.shape[0]):
-                affpop.afferents.append(Afferent(a,location=xy[l,:],**args))
+                afferents.append(Afferent(a,location=xy[l,:],**args))
+    affpop = AfferentPopulation(surface=surface,*afferents)
     return affpop
 
 def stim_sine(**args):
