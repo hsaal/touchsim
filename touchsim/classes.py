@@ -3,11 +3,13 @@ import random
 import warnings
 from math import isclose
 from scipy.signal import resample
+from pathlib import Path
+import json
 
 from .transduction import skin_touch_profile, circ_load_vert_stress,\
     circ_load_dyn_wave, lif_neuron, check_pin_radius
 from . import constants
-from .surface import null_surface
+from .surface import Surface, null_surface
 
 class Afferent(object):
     """A single afferent, which can be placed on a surface and respond to tactile
@@ -42,6 +44,10 @@ class Afferent(object):
         self.noisy = args.get('noisy',True)
         self.delay = args.get('delay',False)
         self.surface = args.get('surface',null_surface)
+
+        # Meta dictionary containing all data required to recreate exact afferent
+        self.meta = args
+        self.meta["type"] = affclass
 
         if self.depth is None:   # Set afferent depth
             self.depth = Afferent.affdepths.get(self.affclass)
@@ -114,15 +120,23 @@ class AfferentPopulation(object):
         Kwargs:
             surface (Surface object): The surface on which Afferent is located
                 (default: a1.surface if set, otherwise null_surface).
+            load (bool): Enables loading population from json file. Implements the load_population method (defaults: False)
+            filename (string): Path to file to load population from. Defaults: False
         """
-        self.afferents = list(afferents)
-        if len(self.afferents)==0:
-            sur = null_surface
+        load = args.get("load", False)
+
+        if load:
+            filename = args.get("filename", None)
+            self.load_population(filename)
         else:
-            sur = self.afferents[0].surface
-        self.surface = args.get('surface',sur)
-        for a in self.afferents:
-            a.surface = self.surface
+            self.afferents = list(afferents)
+            if len(self.afferents)==0:
+                sur = null_surface
+            else:
+                sur = self.afferents[0].surface
+            self.surface = args.get('surface', sur)
+            for a in self.afferents:
+                a.surface = self.surface
 
     def __str__(self):
         return 'AfferentPopulation with ' + str(len(self)) + ' afferent(s): ' +\
@@ -256,6 +270,94 @@ class AfferentPopulation(object):
                 r.append(lif_neuron(self,strain,udyn))
         return Response(self,stim,r)
 
+    def save_population(self, filename:str, make_dirs:bool=True, overwrite:bool=True) -> None:
+        """ Saves afferent population into a json file
+
+        Method creates a dictionary containing the relevant meta information of each afferent and surface within population.
+        Errors are raised by path.parent.mkdir function if make_dirs and overwrite bools are not correctly set for your setup.
+
+        Args:
+            filename (string): Path to json file. Must include .json suffix
+            make_dirs (bool) : Indicate whether directories on output path should be created (default: True)
+            overwrite (bool) : Allows overwrite of file if it already exists on output path (default: True)
+        Returns:
+            None
+        """
+        path = Path(filename)
+
+        # Make parent directories if allowed by make_dirs and overwrite bools
+        path.parent.mkdir(parents=make_dirs, exist_ok=overwrite)
+
+        population_dict = {}
+
+        # Prepare afferents for json
+        for idx, afferent in enumerate(self.afferents):
+            afferent.meta.pop("surface", None)
+            population_dict[idx] = afferent.meta
+
+        # Prepare surface for json
+        # Problem lies in the density subdict using tuples as keys - json does not like this
+        # TODO: Clean this up probably
+        density_dict = self.surface.meta["density"].copy()
+        
+        for key in list(density_dict.keys()):
+            if type(key) == tuple:
+                string_key = f"{key[0]}/{key[1]}"
+                density_dict[string_key] = density_dict.pop(key)
+
+        surface_dict = self.surface.meta.copy()
+        surface_dict["density"] = density_dict
+        
+        population_dict["surface"] = surface_dict
+
+        # TODO: Clean up this code using proper dictionary iterators
+        # Clean up arrays to make json serializable
+        for component in population_dict:
+            for param in population_dict[component]:
+                if type(population_dict[component][param]) == np.ndarray:
+                    population_dict[component][param] = population_dict[component][param].tolist()
+
+        with path.open("w") as out:
+            json.dump(population_dict, out)
+
+    def load_population(self, filename:str) -> None:
+
+        """ Loads an afferent population from a json file. To be used in conjunction with save_population method
+
+        Arguments:
+            filename: Path to json file. Must include .json suffix
+        Returns:
+            None:
+        """
+        path = Path(filename)
+        self.afferents = []
+        
+        with path.open("r") as input:
+            population_data = json.load(input)
+
+        # Get surface for population, reset lists back to arrays
+        surface_params = population_data.pop("surface")
+        surface_params["orig"] = np.array(surface_params["orig"])
+        # Gross converting of keys back to tuples
+        density_dict = surface_params["density"]
+        for key in list(density_dict.keys()):
+            tuple_key = tuple(key.split("/"))
+            density_dict[tuple_key] = density_dict.pop(key)
+        self.surface = Surface(**surface_params)
+
+        # Build afferent population
+        for component, params in population_data.items():
+            # Convert lists back to arrays (lists needed for serialisation)
+            # for key, data in list(population_data[component].items()):
+            #     if type(data) == list:
+            #         population_data[component][key] = np.array(population_data[component][key])
+            
+            #params["surface"] = self.surface
+            t = params.pop("type")
+            self.afferents.append(Afferent(t, **params))
+
+        self.afferents = list(self.afferents)
+        
 
 class Stimulus(object):
     """A tactile stimulus.
@@ -275,6 +377,7 @@ class Stimulus(object):
         self.fs = args.get('fs',1000.)
         self.pin_radius = args.get('pin_radius',.05)
         self.compute_profile()
+        self.meta = args
 
     def __str__(self):
         return 'Stimulus with ' + str(self.location.shape[0]) +\
@@ -441,3 +544,9 @@ class Response(object):
         """
         bins = np.r_[0:self.duration+bin/1000.:bin/1000.]
         return np.array(list(map(lambda x:np.histogram(x,bins=bins)[0],self.spikes)))
+
+    def save_stimulus(self, filename:str) -> None:
+        pass
+
+    def load_stimulus(self, filename:str) -> None:
+        pass
