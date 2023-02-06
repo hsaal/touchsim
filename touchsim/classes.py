@@ -120,23 +120,15 @@ class AfferentPopulation(object):
         Kwargs:
             surface (Surface object): The surface on which Afferent is located
                 (default: a1.surface if set, otherwise null_surface).
-            load (bool): Enables loading population from json file. Implements the load_population method (defaults: False)
-            filename (string): Path to file to load population from. Defaults: False
         """
-        load = args.get("load", False)
-
-        if load:
-            filename = args.get("filename", None)
-            self.load_population(filename)
+        self.afferents = list(afferents)
+        if len(self.afferents)==0:
+            sur = null_surface
         else:
-            self.afferents = list(afferents)
-            if len(self.afferents)==0:
-                sur = null_surface
-            else:
-                sur = self.afferents[0].surface
-            self.surface = args.get('surface', sur)
-            for a in self.afferents:
-                a.surface = self.surface
+            sur = self.afferents[0].surface
+        self.surface = args.get('surface', sur)
+        for a in self.afferents:
+            a.surface = self.surface
 
     def __str__(self):
         return 'AfferentPopulation with ' + str(len(self)) + ' afferent(s): ' +\
@@ -297,31 +289,24 @@ class AfferentPopulation(object):
 
         # Prepare surface for json
         # Problem lies in the density subdict using tuples as keys - json does not like this
-        # TODO: Clean this up probably
-        density_dict = self.surface.meta["density"].copy()
-        
-        for key in list(density_dict.keys()):
-            if type(key) == tuple:
-                string_key = f"{key[0]}/{key[1]}"
-                density_dict[string_key] = density_dict.pop(key)
+        # Convert tuple key to string with "/" seperator
+        density_dict = {f"{key[0]}/{key[1]}" if type(key) is tuple else key:_ for key, _ in self.surface.meta["density"].items()}
 
         surface_dict = self.surface.meta.copy()
         surface_dict["density"] = density_dict
         
         population_dict["surface"] = surface_dict
 
-        # TODO: Clean up this code using proper dictionary iterators
         # Clean up arrays to make json serializable
-        for component in population_dict:
-            for param in population_dict[component]:
-                if type(population_dict[component][param]) == np.ndarray:
-                    population_dict[component][param] = population_dict[component][param].tolist()
+        for component, params in population_dict.items():
+            component_dict = {_: param.tolist() if type(param) is np.ndarray else param for _, param in params.items()}
+            population_dict[component] = component_dict
 
         with path.open("w") as out:
             json.dump(population_dict, out)
 
-    def load_population(self, filename:str) -> None:
-
+    @classmethod
+    def load_population(cls, filename:str) -> None:
         """ Loads an afferent population from a json file. To be used in conjunction with save_population method
 
         Arguments:
@@ -330,7 +315,7 @@ class AfferentPopulation(object):
             None:
         """
         path = Path(filename)
-        self.afferents = []
+        afferents = []
         
         with path.open("r") as input:
             population_data = json.load(input)
@@ -343,21 +328,18 @@ class AfferentPopulation(object):
         for key in list(density_dict.keys()):
             tuple_key = tuple(key.split("/"))
             density_dict[tuple_key] = density_dict.pop(key)
-        self.surface = Surface(**surface_params)
 
         # Build afferent population
-        for component, params in population_data.items():
-            # Convert lists back to arrays (lists needed for serialisation)
-            # for key, data in list(population_data[component].items()):
-            #     if type(data) == list:
-            #         population_data[component][key] = np.array(population_data[component][key])
-            
-            #params["surface"] = self.surface
+        for _, params in population_data.items():
             t = params.pop("type")
-            self.afferents.append(Afferent(t, **params))
+            if "location" in params:
+                params["location"] = np.array(params["location"])
+            afferents.append(Afferent(t, **params))
 
-        self.afferents = list(self.afferents)
-        
+        surface = Surface(**surface_params)
+        afferents = list(afferents)
+
+        return cls(*afferents, surface=surface)
 
 class Stimulus(object):
     """A tactile stimulus.
@@ -439,6 +421,48 @@ class Stimulus(object):
             self._profiledyn,self.location,self.pin_radius,aff.location,
                 aff.depth,self.fs,aff.surface)
         return stat_comp, dyn_comp, self.fs
+
+    def save_stimulus(self, filename:str, make_dirs:bool=True, overwrite:bool=True) -> None:
+        """ Saves stimulus into a json file
+
+        Method creates a dictionary containing the relevant meta information of recreating a stimulus.
+        Errors are raised by path.parent.mkdir function if make_dirs and overwrite bools are not correctly set for your setup.
+
+        Args:
+            filename (string): Path to json file. Must include .json suffix
+            make_dirs (bool) : Indicate whether directories on output path should be created (default: True)
+            overwrite (bool) : Allows overwrite of file if it already exists on output path (default: True)
+        Returns:
+            None
+        """
+        path = Path(filename)
+
+        # Make parent directories if allowed by make_dirs and overwrite bools
+        path.parent.mkdir(parents=make_dirs, exist_ok=overwrite)
+
+        new_params = {key: param.tolist() if type(param) is np.ndarray else param for key, param in self.meta.items()}
+
+        with path.open("w") as out:
+            json.dump(new_params, out)
+
+    @classmethod
+    def load_stimulus(cls, filename:str) -> None:
+
+        """ Loads a stimulus from a json file. To be used in conjunction with save_stimulus method
+
+        Arguments:
+            filename: Path to json file. Must include .json suffix
+        Returns:
+            None:
+        """
+        path = Path(filename)
+        
+        with path.open("r") as input:
+            stimulus_data = json.load(input)
+
+        params = {key: np.array(param) if type(param) is list else param for key, param in stimulus_data.items()}
+
+        return cls(**params)
 
 
 class Response(object):
@@ -544,9 +568,3 @@ class Response(object):
         """
         bins = np.r_[0:self.duration+bin/1000.:bin/1000.]
         return np.array(list(map(lambda x:np.histogram(x,bins=bins)[0],self.spikes)))
-
-    def save_stimulus(self, filename:str) -> None:
-        pass
-
-    def load_stimulus(self, filename:str) -> None:
-        pass
