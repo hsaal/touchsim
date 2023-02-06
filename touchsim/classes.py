@@ -3,11 +3,13 @@ import random
 import warnings
 from math import isclose
 from scipy.signal import resample
+from pathlib import Path
+import json
 
 from .transduction import skin_touch_profile, circ_load_vert_stress,\
     circ_load_dyn_wave, lif_neuron, check_pin_radius
 from . import constants
-from .surface import null_surface
+from .surface import Surface, null_surface
 
 class Afferent(object):
     """A single afferent, which can be placed on a surface and respond to tactile
@@ -42,6 +44,10 @@ class Afferent(object):
         self.noisy = args.get('noisy',True)
         self.delay = args.get('delay',False)
         self.surface = args.get('surface',null_surface)
+
+        # Meta dictionary containing all data required to recreate exact afferent
+        self.meta = args
+        self.meta["type"] = affclass
 
         if self.depth is None:   # Set afferent depth
             self.depth = Afferent.affdepths.get(self.affclass)
@@ -120,7 +126,7 @@ class AfferentPopulation(object):
             sur = null_surface
         else:
             sur = self.afferents[0].surface
-        self.surface = args.get('surface',sur)
+        self.surface = args.get('surface', sur)
         for a in self.afferents:
             a.surface = self.surface
 
@@ -256,6 +262,84 @@ class AfferentPopulation(object):
                 r.append(lif_neuron(self,strain,udyn))
         return Response(self,stim,r)
 
+    def save_population(self, filename:str, make_dirs:bool=True, overwrite:bool=True) -> None:
+        """ Saves afferent population into a json file
+
+        Method creates a dictionary containing the relevant meta information of each afferent and surface within population.
+        Errors are raised by path.parent.mkdir function if make_dirs and overwrite bools are not correctly set for your setup.
+
+        Args:
+            filename (string): Path to json file. Must include .json suffix
+            make_dirs (bool) : Indicate whether directories on output path should be created (default: True)
+            overwrite (bool) : Allows overwrite of file if it already exists on output path (default: True)
+        Returns:
+            None
+        """
+        path = Path(filename)
+
+        # Make parent directories if allowed by make_dirs and overwrite bools
+        path.parent.mkdir(parents=make_dirs, exist_ok=overwrite)
+
+        population_dict = {}
+
+        # Prepare afferents for json
+        for idx, afferent in enumerate(self.afferents):
+            afferent.meta.pop("surface", None)
+            population_dict[idx] = afferent.meta
+
+        # Prepare surface for json
+        # Problem lies in the density subdict using tuples as keys - json does not like this
+        # Convert tuple key to string with "/" seperator
+        density_dict = {f"{key[0]}/{key[1]}" if type(key) is tuple else key:_ for key, _ in self.surface.meta["density"].items()}
+
+        surface_dict = self.surface.meta.copy()
+        surface_dict["density"] = density_dict
+        
+        population_dict["surface"] = surface_dict
+
+        # Clean up arrays to make json serializable
+        for component, params in population_dict.items():
+            component_dict = {_: param.tolist() if type(param) is np.ndarray else param for _, param in params.items()}
+            population_dict[component] = component_dict
+
+        with path.open("w") as out:
+            json.dump(population_dict, out)
+
+    @classmethod
+    def load_population(cls, filename:str) -> None:
+        """ Loads an afferent population from a json file. To be used in conjunction with save_population method
+
+        Arguments:
+            filename: Path to json file. Must include .json suffix
+        Returns:
+            None:
+        """
+        path = Path(filename)
+        afferents = []
+        
+        with path.open("r") as input:
+            population_data = json.load(input)
+
+        # Get surface for population, reset lists back to arrays
+        surface_params = population_data.pop("surface")
+        surface_params["orig"] = np.array(surface_params["orig"])
+        # Gross converting of keys back to tuples
+        density_dict = surface_params["density"]
+        for key in list(density_dict.keys()):
+            tuple_key = tuple(key.split("/"))
+            density_dict[tuple_key] = density_dict.pop(key)
+
+        # Build afferent population
+        for _, params in population_data.items():
+            t = params.pop("type")
+            if "location" in params:
+                params["location"] = np.array(params["location"])
+            afferents.append(Afferent(t, **params))
+
+        surface = Surface(**surface_params)
+        afferents = list(afferents)
+
+        return cls(*afferents, surface=surface)
 
 class Stimulus(object):
     """A tactile stimulus.
@@ -275,6 +359,7 @@ class Stimulus(object):
         self.fs = args.get('fs',1000.)
         self.pin_radius = args.get('pin_radius',.05)
         self.compute_profile()
+        self.meta = args
 
     def __str__(self):
         return 'Stimulus with ' + str(self.location.shape[0]) +\
@@ -336,6 +421,48 @@ class Stimulus(object):
             self._profiledyn,self.location,self.pin_radius,aff.location,
                 aff.depth,self.fs,aff.surface)
         return stat_comp, dyn_comp, self.fs
+
+    def save_stimulus(self, filename:str, make_dirs:bool=True, overwrite:bool=True) -> None:
+        """ Saves stimulus into a json file
+
+        Method creates a dictionary containing the relevant meta information of recreating a stimulus.
+        Errors are raised by path.parent.mkdir function if make_dirs and overwrite bools are not correctly set for your setup.
+
+        Args:
+            filename (string): Path to json file. Must include .json suffix
+            make_dirs (bool) : Indicate whether directories on output path should be created (default: True)
+            overwrite (bool) : Allows overwrite of file if it already exists on output path (default: True)
+        Returns:
+            None
+        """
+        path = Path(filename)
+
+        # Make parent directories if allowed by make_dirs and overwrite bools
+        path.parent.mkdir(parents=make_dirs, exist_ok=overwrite)
+
+        new_params = {key: param.tolist() if type(param) is np.ndarray else param for key, param in self.meta.items()}
+
+        with path.open("w") as out:
+            json.dump(new_params, out)
+
+    @classmethod
+    def load_stimulus(cls, filename:str) -> None:
+
+        """ Loads a stimulus from a json file. To be used in conjunction with save_stimulus method
+
+        Arguments:
+            filename: Path to json file. Must include .json suffix
+        Returns:
+            None:
+        """
+        path = Path(filename)
+        
+        with path.open("r") as input:
+            stimulus_data = json.load(input)
+
+        params = {key: np.array(param) if type(param) is list else param for key, param in stimulus_data.items()}
+
+        return cls(**params)
 
 
 class Response(object):

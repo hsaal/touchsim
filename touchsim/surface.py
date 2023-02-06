@@ -41,6 +41,7 @@ class Surface(object):
                 afferent class and 2) string denoting density tag, and float
                 denoting afferent density in cm^2 (default: 10. for each mapping).
         """
+        self.meta = args
         self.orig = args.get('orig',np.array([0., 0.]))
         self.pxl_per_mm = args.get('pxl_per_mm',1.)
         self.theta = args.get('theta',0.)
