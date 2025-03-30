@@ -4,8 +4,8 @@ import os.path
 import warnings
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import dijkstra
-from scipy.ndimage.morphology import distance_transform_edt
-from scipy.ndimage.morphology import binary_fill_holes,binary_dilation
+from scipy.ndimage import distance_transform_edt
+from scipy.ndimage import binary_fill_holes,binary_dilation
 from skimage.measure import label, find_contours, regionprops
 from skimage.morphology import thin
 from matplotlib import path
