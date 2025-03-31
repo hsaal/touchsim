@@ -430,7 +430,7 @@ class Response(object):
             r = np.atleast_2d(np.mean(r,axis=1)).T
         return r
 
-    def psth(self,bin=10.):
+    def psth(self,bin=10.,**args):
         """Calculates the time-varying response (psth) for each afferent.
 
         Kwargs:
@@ -439,5 +439,5 @@ class Response(object):
         Returns:
             NxB array of firing rates (N: number of afferents, B: number of bins).
         """
-        bins = np.r_[0:self.duration+bin/1000.:bin/1000.]
+        bins = args.get('bins', np.r_[0:self.duration+bin/1000.:bin/1000.])
         return np.array(list(map(lambda x:np.histogram(x,bins=bins)[0],self.spikes)))
