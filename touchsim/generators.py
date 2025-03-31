@@ -277,9 +277,16 @@ def stim_impulse(**args):
     pre_indent = args.get('pre_indent',default_params['pre_indent'])
     pad_len = args.get('pad_len',default_params['pad_len'])
 
-    trace = signal.gaussian(int(fs*len),std=7) *\
-        np.sin(np.linspace(-np.pi,np.pi,int(fs*len)))
-    trace = trace/np.max(trace)*amp
+    # Generate a Gaussian pulse using scipy.stats.norm.pdf
+    num_samples = int(fs * len)
+    x = np.linspace(-3, 3, num_samples)  # Standardized range for Gaussian
+    gaussian = np.exp(-0.5 * x**2)  # Equivalent to norm.pdf(x, loc=0, scale=1)
+    gaussian /= np.max(gaussian)  # Normalize to peak at 1
+
+    # Modulate the Gaussian with a sine wave
+    sine_wave = np.sin(np.linspace(-np.pi, np.pi, num_samples))
+    trace = gaussian * sine_wave
+    trace = trace / np.max(trace) * amp
 
     if pad_len>0:
         trace = apply_pad(trace,pad_len=pad_len,fs=fs)
