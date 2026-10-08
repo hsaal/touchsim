@@ -1,9 +1,10 @@
 name: ts
 
 dependencies:
-  - python>=3.6
+  - python>=3.9
   - numpy>=1.13
   - scipy
   - scikit-image
+  - pillow
   - numba>=0.34
   - matplotlib>=2.2.2

@@ -9,12 +9,15 @@ Click on the badge below to open a fully functional [tutorial notebook](./touchs
 *Note:* The notebook usually starts in less than 30 seconds, however it can take around 10 minutes if the repository has recently been updated and a new environment needs to be created (evident if the log appears stuck on 'Solving environment').
 
 ## Installation
-The touchsim package requires Python 3.6 or higher to run. It also requires *numpy*, *scipy*, *skikit-image*, *numba*, and *matplotlib*.
+The touchsim package requires Python 3.9 or higher to run. It also requires *numpy*, *scipy*, *scikit-image*, *numba*, and *matplotlib*.
 
 If using conda for package management, the following command creates a new environment *ts* with all dependencies installed:
 ```conda env create -f environment.yml```
 
-To install a static version of the package, use `python setup.py install`. To install the package in development mode (such that updates to the source directory are reflected in the installed package), use `python setup.py develop`.
+To install the latest version directly from GitHub, use
+```pip install git+https://github.com/hsaal/touchsim```
+
+Alternatively, from a local copy of the repository, run `pip install .` from the base directory. To install the package in development (editable) mode, such that updates to the source directory are reflected in the installed package, use `pip install -e .` instead.
 
 If *pytest* is installed, running `pytest` from the base directory will test whether the package is working as intended.
 

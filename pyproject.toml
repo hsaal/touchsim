@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "touchsim"
+version = "0.1.2"
+description = "TouchSim: Simulating tactile signals from the whole hand with millisecond precision"
+readme = "README.md"
+authors = [{ name = "Hannes Saal", email = "h.saal@sheffield.ac.uk" }]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "scipy",
+    "numba",
+    "matplotlib",
+    "scikit-image",
+    "pillow",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+Homepage = "https://github.com/hsaal/touchsim"
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.setuptools]
+packages = ["touchsim"]
+
+[tool.setuptools.package-data]
+touchsim = ["surfaces/*.png"]
