@@ -23,3 +23,11 @@ If *pytest* is installed, running `pytest` from the base directory will test whe
 
 ## Using the package
 Examples of how to use the model and its plotting functions are given as Jupyter notebooks in the base directory, see the [general tutorial](./touchsim_demo.ipynb), [plotting demo](./touchsim_plotting.ipynb), and [list of overloaded functions](./touchsim_shortcuts.ipynb).
+
+## Citation
+If you use TouchSim in your research, please cite:
+
+> Saal HP, Delhaye BP, Rayhaun BC, Bensmaia SJ (2017). Simulating tactile signals from the whole hand with millisecond precision. *Proceedings of the National Academy of Sciences* 114(28): E5693–E5702. https://doi.org/10.1073/pnas.1704856114
+
+## License
+TouchSim is released under the [MIT License](./LICENSE).

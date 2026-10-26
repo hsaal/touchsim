@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use TouchSim in your research, please cite the paper below."
+title: "TouchSim: Simulating tactile signals from the whole hand with millisecond precision"
+type: software
+authors:
+  - family-names: Saal
+    given-names: Hannes P.
+    affiliation: University of Sheffield
+version: 0.1.2
+license: MIT
+repository-code: "https://github.com/hsaal/touchsim"
+preferred-citation:
+  type: article
+  title: "Simulating tactile signals from the whole hand with millisecond precision"
+  authors:
+    - family-names: Saal
+      given-names: Hannes P.
+    - family-names: Delhaye
+      given-names: Benoit P.
+    - family-names: Rayhaun
+      given-names: Brandon C.
+    - family-names: Bensmaia
+      given-names: Sliman J.
+  journal: "Proceedings of the National Academy of Sciences"
+  volume: 114
+  issue: 28
+  start: E5693
+  end: E5702
+  year: 2017
+  doi: 10.1073/pnas.1704856114

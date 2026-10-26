@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,6 +7,8 @@ name = "touchsim"
 version = "0.1.2"
 description = "TouchSim: Simulating tactile signals from the whole hand with millisecond precision"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "Hannes Saal", email = "h.saal@sheffield.ac.uk" }]
 requires-python = ">=3.9"
 dependencies = [
@@ -28,8 +30,8 @@ Homepage = "https://github.com/hsaal/touchsim"
 [project.optional-dependencies]
 test = ["pytest"]
 
-[tool.setuptools]
-packages = ["touchsim"]
+[tool.setuptools.packages.find]
+include = ["touchsim*"]
 
 [tool.setuptools.package-data]
 touchsim = ["surfaces/*.png"]
