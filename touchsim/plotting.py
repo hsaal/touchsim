@@ -70,7 +70,7 @@ def plot_stimulus(obj, **args):
         for i, trace in enumerate(obj.trace):
             plt.plot(obj.time, trace, label=f"Pin {i}")
         plt.gca().set_xlabel("Time (s)")
-        plt.gca().set_ylabel("Trace")
+        plt.gca().set_ylabel("Displacement (mm)")
         plt.xlim(bin[0], bin[1])
         plt.legend()
     else:

@@ -52,7 +52,7 @@ class Afferent(object):
         self.parameters = p[self.idx].copy()
 
         if not self.delay:
-            self.parameters[12] = 0.;
+            self.parameters[12] = 0.
 
     def __str__(self):
         return 'Afferent of class ' + self.affclass + ' (gid: ' +\
