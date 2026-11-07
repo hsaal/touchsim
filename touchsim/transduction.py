@@ -178,15 +178,26 @@ def lif_neuron(aff,stimi,dstimi):
     # Make basis for post-spike current
     ih = np.dot(p[:,10:12],ihbasis)
 
+    stages = getattr(aff,'stages',None)
+    if stages is None or isinstance(stages,dict):
+        stages = [stages]*p.shape[0]
+
     uq,ia,ic = np.unique(np.atleast_2d(aff.gid),axis=0,
         return_index=True,return_inverse=True)
+    ic = np.ravel(ic)
+    dz = []
     for i in range(uq.shape[0]):
         bfilt,afilt = signal.butter(3,p[ia[i],0]*4./1000.)
         if uq[i,0]==0:
             stimi[ic==i] = signal.lfilter(bfilt,afilt,stimi[ic==i],axis=1)
         dstimi[ic==i] = signal.lfilter(bfilt,afilt,dstimi[ic==i],axis=1)
+        st = stages[ia[i]] or {}
+        if st.get('dz') is not None:   # dead-zone inhibition acts on the low-passed input
+            dz.append((ic==i, st['dz'], np.abs(dstimi[ic==i])))
 
     Iinj = weight_inputs(p,stimi,dstimi)
+    for rows,(w,theta),absv in dz:
+        Iinj[rows] -= w*np.maximum(absv-theta,0.)
 
     Vmem = np.zeros(Iinj.shape)
     Sp = lif_sub(Vmem,Iinj,ih,p,aff.noisy)

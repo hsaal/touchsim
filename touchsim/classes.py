@@ -16,6 +16,7 @@ class Afferent(object):
     affclasses = constants.affclasses
     affdepths = constants.affdepths
     affparams = constants.affparams
+    affstages = constants.affstages
     affcol = constants.affcol
 
     def __init__(self,affclass,**args):
@@ -50,6 +51,8 @@ class Afferent(object):
         if self.idx is None:
             self.idx = random.randint(0,p.shape[0]-1)
         self.parameters = p[self.idx].copy()
+        st = Afferent.affstages.get(self.affclass)[self.idx]
+        self.stages = None if st is None else dict(st)  # extra IF-stage elements
 
         if not self.delay:
             self.parameters[12] = 0.
@@ -215,6 +218,10 @@ class AfferentPopulation(object):
     @property
     def noisy(self):
         return np.asarray(list(map(lambda x:x.noisy,self.afferents)))
+
+    @property
+    def stages(self):
+        return [getattr(x,'stages',None) for x in self.afferents]
 
     def find(self,affclass):
         """Finds afferents in the population of a given class.

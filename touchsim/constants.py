@@ -79,8 +79,37 @@ affparamsPC = np.array([[27.50213623046875, 0., 0., -257.79678911169367, -185.65
                     4.7331220358610153, -6.1505432367324815, -0.2100401371717453,
                     3.6196996516799924]])
 
+affparamsPC_stock = affparamsPC.copy()
+
+# Refit PC parameters (pc_refit/, 2026): velocity and acceleration weights
+# sign-constrained (>= 0) so that a weak slow component cannot suppress firing
+# (see pc_refit/REPORT.md). Models 0, 1 and 3 add dead-zone velocity
+# inhibition, given per model in affstagesPC_refit:
+#   'dz': (w, theta)  -w*max(|v| - theta, 0), v the low-passed dynamic input
+affparamsPC_refit = np.array([[35.77113428120775, 0.0, 0.0, 0.0, 0.0, 352.1571350741151, 0.0, 57.369360228110224, 0.04999999850988388, 5.125608299889549, -17.58580178705583, -0.5375393998592171, 6.548896862197478],
+                    [29.9611028375721, 0.0, 0.0, 0.0, 0.0, 302.17356993645114, 34.118034719977764, 35.85908977844855, 0.04999999850988388, 0.6014074892668546, -10.24351474193675, -1.6010262880466994, 3.5251706087452312],
+                    [41.63351475528896, 0.0, 0.0, 0.0, 0.5110188185084397, 2.7694863706378037, 12.349905345491985, 66.03960398762077, 0.04999999850988388, 6.919242989192998, -7.2317749490707275, -0.20331072024106023, 5.4629571048672965],
+                    [36.47309499913948, 0.0, 0.0, 0.0, 0.0, 49.869836519839524, 253.41135917884895, 69.24105801034383, 0.04999999850988388, 4.078690160357024, -17.002280765097662, -0.9183119533306239, 3.692667578422979]])
+affstagesPC_refit = [{'dz': (137.2938922840658, 0.07000000000000002)}, {'dz': (119.33858790996123, 0.1)}, None, {'dz': (29.908643953441242, 0.1)}]
+
+# PC model sets; select with set_pc_models (default: stock)
+pc_models = {'stock': (affparamsPC_stock, [None] * 4),
+              'refit': (affparamsPC_refit, affstagesPC_refit)}
+
 # parameters dictionary
 affparams = {'SA1':affparamsSA,'RA':affparamsRA,'PC':affparamsPC}
+
+# extra IF-stage elements per model (None: plain TouchSim IF stage)
+affstages = {'SA1':[None]*affparamsSA.shape[0],'RA':[None]*affparamsRA.shape[0],
+              'PC':[None]*affparamsPC.shape[0]}
+
+
+def set_pc_models(name):
+    """Selects the PC model set used by Afferents created afterwards:
+    'stock' (Saal et al. 2017) or 'refit' (sign-constrained refit)."""
+    params, stages = pc_models[name]
+    affparams['PC'] = params
+    affstages['PC'] = list(stages)
 
 affcol = {'SA1':[0.1961,0.6275,0.1569],'RA':[0.1176,0.4706,0.7059],'PC':[1.0000,0.4980,0.]}
 
